@@ -1,0 +1,12 @@
+{{define "content"}}
+<form hx-post="/analyze" hx-target="#result" hx-swap="innerHTML" hx-encoding="multipart/form-data">
+  <label for="resume">Resume (PDF)</label>
+  <input type="file" id="resume" name="resume" accept="application/pdf" required>
+
+  <label for="jd">Job description</label>
+  <textarea id="jd" name="jd" placeholder="Paste the full job description here…" required></textarea>
+
+  <div style="margin-top:1rem"><button type="submit">Analyze</button></div>
+</form>
+<div id="result"></div>
+{{end}}

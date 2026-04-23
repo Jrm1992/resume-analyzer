@@ -1,0 +1,8 @@
+{{define "queued"}}
+<div id="result"
+     hx-get="/jobs/{{.ID}}"
+     hx-trigger="load delay:1s, every 2s"
+     hx-swap="outerHTML">
+  <p><span class="spinner"></span> Analyzing… (this can take up to a minute)</p>
+</div>
+{{end}}

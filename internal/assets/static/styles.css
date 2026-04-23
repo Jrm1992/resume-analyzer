@@ -1,0 +1,17 @@
+* { box-sizing: border-box; }
+body { font-family: system-ui, sans-serif; max-width: 960px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+h1 { margin-bottom: 0.25rem; }
+form label { display: block; margin: 0.75rem 0 0.25rem; font-weight: 600; }
+form input[type=file], form textarea { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font: inherit; }
+form textarea { min-height: 200px; }
+button { background: #2563eb; color: white; border: 0; padding: 0.6rem 1.2rem; border-radius: 4px; font: inherit; cursor: pointer; }
+button:hover { background: #1d4ed8; }
+.spinner { display: inline-block; width: 1em; height: 1em; border: 2px solid #ccc; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.score-bar { background: #e5e7eb; border-radius: 4px; overflow: hidden; height: 1rem; }
+.score-bar-fill { background: #10b981; height: 100%; }
+.chip { display: inline-block; background: #eef2ff; color: #3730a3; padding: 0.15rem 0.6rem; margin: 0.15rem; border-radius: 99px; font-size: 0.9em; }
+.suggestion { border-left: 3px solid #2563eb; padding: 0.5rem 0.75rem; margin: 0.5rem 0; background: #f8fafc; }
+.suggestion del { color: #b91c1c; }
+.suggestion ins { color: #047857; text-decoration: none; font-weight: 600; }
+.error { background: #fee2e2; border: 1px solid #fca5a5; color: #7f1d1d; padding: 0.75rem; border-radius: 4px; }

@@ -1,0 +1,14 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Resume Analyzer</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/htmx.min.js"></script>
+</head>
+<body>
+  <h1>Resume Analyzer</h1>
+  <p>Upload a PDF resume and paste a job description. Get a match score + rewrite.</p>
+  {{template "content" .}}
+</body>
+</html>{{end}}

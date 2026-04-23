@@ -1,0 +1,33 @@
+{{define "done"}}
+<div id="result">
+  <h2>Match score: {{.Result.Score}}%</h2>
+  <div class="score-bar"><div class="score-bar-fill" style="width:{{.Result.Score}}%"></div></div>
+
+  <h3>Breakdown</h3>
+  <ul>
+    <li>Skills: {{.Result.Breakdown.Skills}}%</li>
+    <li>Experience: {{.Result.Breakdown.Experience}}%</li>
+    <li>Education: {{.Result.Breakdown.Education}}%</li>
+  </ul>
+
+  <h3>Strengths</h3>
+  <div>{{range .Result.Strengths}}<span class="chip">{{.}}</span>{{else}}<em>None highlighted.</em>{{end}}</div>
+
+  <h3>Missing keywords</h3>
+  <div>{{range .Result.Missing}}<span class="chip">{{.}}</span>{{else}}<em>None detected.</em>{{end}}</div>
+
+  <h3>Suggested rewrites</h3>
+  {{range .Result.Suggestions}}
+    <div class="suggestion">
+      <strong>{{.Section}}</strong>
+      <div><del>{{.Original}}</del></div>
+      <div><ins>{{.Suggested}}</ins></div>
+      <div><small>{{.Rationale}}</small></div>
+    </div>
+  {{else}}<p><em>No suggestions.</em></p>{{end}}
+
+  <p style="margin-top:1.5rem">
+    <a href="/jobs/{{.ID}}/pdf"><button type="button">Download rewritten PDF</button></a>
+  </p>
+</div>
+{{end}}
