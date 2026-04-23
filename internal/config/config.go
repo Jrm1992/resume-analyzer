@@ -10,16 +10,17 @@ import (
 )
 
 type Config struct {
-	Port          int
-	LLMBaseURL    string
-	LLMAPIKey     string
-	LLMModel      string
-	LLMMaxTokens  int
-	MaxPDFBytes   int64
-	LLMTimeout    time.Duration
-	Workers       int
-	QueueCapacity int
-	JobTTL        time.Duration
+	Port              int
+	LLMBaseURL        string
+	LLMAPIKey         string
+	LLMModel          string
+	LLMMaxTokens      int
+	LLMResponseFormat string // "json_object" | "text" | "none" (omit field)
+	MaxPDFBytes       int64
+	LLMTimeout        time.Duration
+	Workers           int
+	QueueCapacity     int
+	JobTTL            time.Duration
 }
 
 func Load() (*Config, error) {
@@ -59,17 +60,26 @@ func Load() (*Config, error) {
 
 	baseURL := strings.TrimRight(getStr("LLM_BASE_URL", "https://api.openai.com/v1"), "/")
 
+	respFmt := strings.ToLower(getStr("LLM_RESPONSE_FORMAT", "json_object"))
+	switch respFmt {
+	case "json_object", "text", "none", "":
+		// ok
+	default:
+		return nil, fmt.Errorf("env LLM_RESPONSE_FORMAT: must be 'json_object', 'text', or 'none', got %q", respFmt)
+	}
+
 	return &Config{
-		Port:          port,
-		LLMBaseURL:    baseURL,
-		LLMAPIKey:     apiKey,
-		LLMModel:      getStr("LLM_MODEL", "gpt-4o-mini"),
-		LLMMaxTokens:  maxTokens,
-		MaxPDFBytes:   int64(maxMB) * 1024 * 1024,
-		LLMTimeout:    time.Duration(timeoutSec) * time.Second,
-		Workers:       workers,
-		QueueCapacity: queueCap,
-		JobTTL:        time.Duration(ttlMin) * time.Minute,
+		Port:              port,
+		LLMBaseURL:        baseURL,
+		LLMAPIKey:         apiKey,
+		LLMModel:          getStr("LLM_MODEL", "gpt-4o-mini"),
+		LLMMaxTokens:      maxTokens,
+		LLMResponseFormat: respFmt,
+		MaxPDFBytes:       int64(maxMB) * 1024 * 1024,
+		LLMTimeout:        time.Duration(timeoutSec) * time.Second,
+		Workers:           workers,
+		QueueCapacity:     queueCap,
+		JobTTL:            time.Duration(ttlMin) * time.Minute,
 	}, nil
 }
 

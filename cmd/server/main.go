@@ -48,12 +48,13 @@ func run() error {
 	janitor := jobs.NewJanitor(store, cfg.JobTTL, 5*time.Minute)
 
 	llmClient := &llm.Client{
-		BaseURL:   cfg.LLMBaseURL,
-		APIKey:    cfg.LLMAPIKey,
-		Model:     cfg.LLMModel,
-		MaxTokens: cfg.LLMMaxTokens,
-		Timeout:   cfg.LLMTimeout,
-		HTTP:      &nethttp.Client{Timeout: cfg.LLMTimeout + 5*time.Second},
+		BaseURL:        cfg.LLMBaseURL,
+		APIKey:         cfg.LLMAPIKey,
+		Model:          cfg.LLMModel,
+		MaxTokens:      cfg.LLMMaxTokens,
+		ResponseFormat: cfg.LLMResponseFormat,
+		Timeout:        cfg.LLMTimeout,
+		HTTP:           &nethttp.Client{Timeout: cfg.LLMTimeout + 5*time.Second},
 	}
 
 	srv := &apphttp.Server{

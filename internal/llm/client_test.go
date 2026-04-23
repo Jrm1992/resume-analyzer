@@ -59,12 +59,13 @@ func respondWith(content string) http.HandlerFunc {
 
 func testClient(baseURL string, httpc *http.Client, timeout time.Duration) *Client {
 	return &Client{
-		BaseURL:   baseURL,
-		APIKey:    "test-key",
-		Model:     "test-model",
-		MaxTokens: 1024,
-		Timeout:   timeout,
-		HTTP:      httpc,
+		BaseURL:        baseURL,
+		APIKey:         "test-key",
+		Model:          "test-model",
+		MaxTokens:      1024,
+		ResponseFormat: "json_object",
+		Timeout:        timeout,
+		HTTP:           httpc,
 	}
 }
 
@@ -137,6 +138,28 @@ func TestAnalyze_SendsBearerTokenAndJSONFormat(t *testing.T) {
 	}
 	if !strings.Contains(bodyStr, `"max_tokens":1024`) {
 		t.Errorf("body missing max_tokens: %s", bodyStr)
+	}
+}
+
+func TestAnalyze_ResponseFormatNone_OmitsField(t *testing.T) {
+	var bodyStr string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		bodyStr = string(b)
+		var resp openaiChatResp
+		resp.Choices = []openaiChoice{{}}
+		resp.Choices[0].Message.Content = mustLoad(t, "../../testdata/llm-responses/ok.json")
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer srv.Close()
+
+	c := testClient(srv.URL, srv.Client(), 5*time.Second)
+	c.ResponseFormat = "none"
+	if _, err := c.Analyze(context.Background(), "r", "j"); err != nil {
+		t.Fatalf("Analyze: %v", err)
+	}
+	if strings.Contains(bodyStr, `"response_format"`) {
+		t.Errorf("body should NOT contain response_format: %s", bodyStr)
 	}
 }
 

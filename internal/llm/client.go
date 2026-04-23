@@ -13,12 +13,13 @@ import (
 )
 
 type Client struct {
-	BaseURL   string
-	APIKey    string
-	Model     string
-	MaxTokens int
-	Timeout   time.Duration
-	HTTP      *http.Client
+	BaseURL        string
+	APIKey         string
+	Model          string
+	MaxTokens      int
+	ResponseFormat string // "json_object" | "text" | "none" or "" to omit
+	Timeout        time.Duration
+	HTTP           *http.Client
 }
 
 type chatMessage struct {
@@ -89,9 +90,11 @@ func (c *Client) tryOnce(ctx context.Context, system, user string) (*AnalysisRes
 			{Role: "system", Content: system},
 			{Role: "user", Content: user},
 		},
-		Temperature:    0.3,
-		MaxTokens:      c.MaxTokens,
-		ResponseFormat: &responseFormat{Type: "json_object"},
+		Temperature: 0.3,
+		MaxTokens:   c.MaxTokens,
+	}
+	if rf := c.ResponseFormat; rf != "" && rf != "none" {
+		reqBody.ResponseFormat = &responseFormat{Type: rf}
 	}
 	buf, err := json.Marshal(reqBody)
 	if err != nil {

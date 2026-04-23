@@ -34,16 +34,21 @@ func TestEndToEnd_AgainstRealProvider(t *testing.T) {
 		base = "https://api.openai.com/v1"
 	}
 
+	respFmt := os.Getenv("LLM_RESPONSE_FORMAT")
+	if respFmt == "" {
+		respFmt = "json_object"
+	}
 	cfg := &config.Config{
-		MaxPDFBytes:   10 << 20,
-		LLMTimeout:    120 * time.Second,
-		Workers:       1,
-		QueueCapacity: 4,
-		JobTTL:        time.Hour,
-		LLMBaseURL:    base,
-		LLMAPIKey:     apiKey,
-		LLMModel:      model,
-		LLMMaxTokens:  4000,
+		MaxPDFBytes:       10 << 20,
+		LLMTimeout:        120 * time.Second,
+		Workers:           1,
+		QueueCapacity:     4,
+		JobTTL:            time.Hour,
+		LLMBaseURL:        base,
+		LLMAPIKey:         apiKey,
+		LLMModel:          model,
+		LLMMaxTokens:      4000,
+		LLMResponseFormat: respFmt,
 	}
 	tpl, err := apphttp.LoadTemplates()
 	if err != nil {
@@ -52,12 +57,13 @@ func TestEndToEnd_AgainstRealProvider(t *testing.T) {
 	store := jobs.NewStore()
 	queue := jobs.NewQueue(cfg.Workers, cfg.QueueCapacity)
 	client := &llm.Client{
-		BaseURL:   cfg.LLMBaseURL,
-		APIKey:    cfg.LLMAPIKey,
-		Model:     cfg.LLMModel,
-		MaxTokens: cfg.LLMMaxTokens,
-		Timeout:   cfg.LLMTimeout,
-		HTTP:      &http.Client{Timeout: cfg.LLMTimeout + 5*time.Second},
+		BaseURL:        cfg.LLMBaseURL,
+		APIKey:         cfg.LLMAPIKey,
+		Model:          cfg.LLMModel,
+		MaxTokens:      cfg.LLMMaxTokens,
+		ResponseFormat: cfg.LLMResponseFormat,
+		Timeout:        cfg.LLMTimeout,
+		HTTP:           &http.Client{Timeout: cfg.LLMTimeout + 5*time.Second},
 	}
 	srv := &apphttp.Server{Config: cfg, Templates: tpl, Store: store, Queue: queue, Analyzer: client}
 
