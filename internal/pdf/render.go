@@ -14,6 +14,8 @@ import (
 )
 
 // Render produces an ATS-friendly single-column PDF from a RewrittenResume.
+// Uses AddAutoRow for text that may wrap so row heights scale with content
+// and lines don't overlap.
 func Render(r RewrittenResume) ([]byte, error) {
 	cfg := config.NewBuilder().
 		WithPageSize(pagesize.A4).
@@ -24,21 +26,26 @@ func Render(r RewrittenResume) ([]byte, error) {
 		Build()
 	m := maroto.New(cfg)
 
-	m.AddRow(12, text.NewCol(12, r.Name, props.Text{
+	m.AddAutoRow(text.NewCol(12, r.Name, props.Text{
 		Size:  18,
 		Style: fontstyle.Bold,
 		Align: align.Left,
+		Top:   1,
 	}))
 	if c := formatContact(r.Contact); c != "" {
-		m.AddRow(6, text.NewCol(12, c, props.Text{Size: 10, Align: align.Left}))
+		m.AddAutoRow(text.NewCol(12, c, props.Text{
+			Size:  10,
+			Align: align.Left,
+			Top:   1,
+		}))
 	}
 	if r.Summary != "" {
 		addSection(m, "SUMMARY")
-		m.AddRow(10, text.NewCol(12, r.Summary, props.Text{Size: 10}))
+		m.AddAutoRow(text.NewCol(12, r.Summary, props.Text{Size: 10, Top: 1}))
 	}
 	if len(r.Skills) > 0 {
 		addSection(m, "SKILLS")
-		m.AddRow(8, text.NewCol(12, joinSkills(r.Skills), props.Text{Size: 10}))
+		m.AddAutoRow(text.NewCol(12, joinSkills(r.Skills), props.Text{Size: 10, Top: 1}))
 	}
 	if len(r.Experience) > 0 {
 		addSection(m, "EXPERIENCE")
@@ -50,9 +57,16 @@ func Render(r RewrittenResume) ([]byte, error) {
 			if e.Dates != "" {
 				header += " (" + e.Dates + ")"
 			}
-			m.AddRow(8, text.NewCol(12, header, props.Text{Size: 11, Style: fontstyle.Bold}))
+			m.AddAutoRow(text.NewCol(12, header, props.Text{
+				Size:  11,
+				Style: fontstyle.Bold,
+				Top:   2,
+			}))
 			for _, b := range e.Bullets {
-				m.AddRow(6, text.NewCol(12, "• "+b, props.Text{Size: 10}))
+				m.AddAutoRow(text.NewCol(12, "• "+b, props.Text{
+					Size: 10,
+					Top:  1,
+				}))
 			}
 		}
 	}
@@ -66,7 +80,7 @@ func Render(r RewrittenResume) ([]byte, error) {
 			if e.Dates != "" {
 				line += " (" + e.Dates + ")"
 			}
-			m.AddRow(6, text.NewCol(12, line, props.Text{Size: 10}))
+			m.AddAutoRow(text.NewCol(12, line, props.Text{Size: 10, Top: 1}))
 		}
 	}
 
@@ -78,11 +92,12 @@ func Render(r RewrittenResume) ([]byte, error) {
 }
 
 func addSection(m core.Maroto, title string) {
-	m.AddRow(2)
-	m.AddRow(8, text.NewCol(12, title, props.Text{
+	m.AddRow(3) // spacer
+	m.AddAutoRow(text.NewCol(12, title, props.Text{
 		Size:  11,
 		Style: fontstyle.Bold,
 		Align: align.Left,
+		Top:   1,
 	}))
 }
 
@@ -96,7 +111,7 @@ func formatContact(c ContactInfo) string {
 	return joinSep(parts, " • ")
 }
 
-func joinSkills(s []string) string  { return joinSep(s, ", ") }
+func joinSkills(s []string) string { return joinSep(s, ", ") }
 
 func joinSep(parts []string, sep string) string {
 	out := ""
