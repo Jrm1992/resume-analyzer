@@ -1,0 +1,26 @@
+{
+  "score": 82,
+  "breakdown": { "skills": 85, "experience": 80, "education": 75 },
+  "missing": ["Kubernetes", "gRPC"],
+  "strengths": ["Go proficiency", "backend systems"],
+  "suggestions": [
+    {
+      "section": "summary",
+      "original": "Backend developer.",
+      "suggested": "Senior backend developer with 8 years of Go experience.",
+      "rationale": "Quantify seniority and highlight primary language from JD."
+    }
+  ],
+  "rewritten": {
+    "Name": "Jane Doe",
+    "Contact": { "Email": "jane@example.com", "Phone": "555-0100", "Location": "", "LinkedIn": "" },
+    "Summary": "Senior backend developer with 8 years of Go experience.",
+    "Skills": ["Go", "PostgreSQL"],
+    "Experience": [
+      { "Company": "Acme", "Role": "Senior Engineer", "Dates": "2020-present", "Bullets": ["Led billing service rewrite."] }
+    ],
+    "Education": [
+      { "Institution": "MIT", "Degree": "BS CS", "Dates": "2012-2016" }
+    ]
+  }
+}
