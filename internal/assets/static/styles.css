@@ -512,14 +512,15 @@ a:hover {
   margin-top: 3rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-sage);
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
   gap: 1rem;
   color: var(--text-muted);
 }
 
 @media (min-width: 640px) {
-  .site-footer { grid-template-columns: 2fr 1fr 1fr; }
+  .site-footer { flex-direction: row; }
 }
 
 .footer-brand {
