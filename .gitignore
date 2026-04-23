@@ -1,0 +1,10 @@
+/resume-analyzer
+/bin/
+/dist/
+*.test
+*.out
+coverage.out
+.DS_Store
+.env
+.air.toml
+tmp/
