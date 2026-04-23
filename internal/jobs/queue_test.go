@@ -20,7 +20,7 @@ func TestQueue_ProcessesJobs(t *testing.T) {
 
 	s := NewStore()
 	for i := 0; i < 4; i++ {
-		j := s.Create("r", "j", "")
+		j := s.Create("r", "j", "", "")
 		if err := q.Enqueue(j); err != nil {
 			t.Fatalf("enqueue: %v", err)
 		}
@@ -56,7 +56,7 @@ func TestQueue_StopOnContextCancel(t *testing.T) {
 		close(done)
 	})
 	s := NewStore()
-	j := s.Create("r", "j", "")
+	j := s.Create("r", "j", "", "")
 	_ = q.Enqueue(j)
 	time.Sleep(10 * time.Millisecond) // Give worker time to dequeue the job
 	cancel()

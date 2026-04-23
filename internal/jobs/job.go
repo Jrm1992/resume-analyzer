@@ -17,6 +17,7 @@ const (
 
 type Job struct {
 	ID        string
+	RequestID string // correlation id from chi middleware.RequestID
 	Status    Status
 	CreatedAt time.Time
 	UpdatedAt time.Time

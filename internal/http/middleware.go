@@ -5,13 +5,20 @@ import (
 	"net/http"
 	"runtime/debug"
 	"time"
+
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func recoverMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
-				slog.Error("panic", "err", rec, "stack", string(debug.Stack()), "path", r.URL.Path)
+				slog.Error("panic",
+					"req_id", middleware.GetReqID(r.Context()),
+					"err", rec,
+					"stack", string(debug.Stack()),
+					"path", r.URL.Path,
+				)
 				http.Error(w, "internal error", http.StatusInternalServerError)
 			}
 		}()
@@ -35,6 +42,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		start := time.Now()
 		next.ServeHTTP(rec, r)
 		slog.Info("http",
+			"req_id", middleware.GetReqID(r.Context()),
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", rec.code,

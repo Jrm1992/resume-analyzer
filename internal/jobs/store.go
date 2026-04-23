@@ -16,10 +16,11 @@ func NewStore() *Store {
 	return &Store{jobs: make(map[string]*Job)}
 }
 
-func (s *Store) Create(resume, jd, language string) *Job {
+func (s *Store) Create(resume, jd, language, requestID string) *Job {
 	now := time.Now()
 	j := &Job{
 		ID:        uuid.NewString(),
+		RequestID: requestID,
 		Status:    StatusQueued,
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -33,6 +34,12 @@ func (s *Store) Create(resume, jd, language string) *Job {
 	return j
 }
 
+// Get returns a shallow copy of the job.
+//
+// Invariant: Job.Result is a pointer to llm.AnalysisResult. Callers MUST treat
+// Result as immutable — it is written exactly once (when the job transitions
+// to StatusDone) and read by many. No deep copy is performed because the
+// struct is not mutated after assignment; copying it would be pure overhead.
 func (s *Store) Get(id string) (*Job, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -40,7 +47,6 @@ func (s *Store) Get(id string) (*Job, bool) {
 	if !ok {
 		return nil, false
 	}
-	// Return a shallow copy to prevent callers from mutating store state directly.
 	cp := *j
 	return &cp, true
 }

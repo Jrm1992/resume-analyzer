@@ -1,10 +1,10 @@
 package http
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"log/slog"
 	"net/http"
@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jose/resume-analyzer/internal/config"
 	"github.com/jose/resume-analyzer/internal/jobs"
 	"github.com/jose/resume-analyzer/internal/llm"
@@ -49,14 +50,14 @@ func (s *Server) JobHandler(ctx context.Context, j *jobs.Job) {
 	res, err := s.Analyzer.Analyze(cctx, j.Resume, j.JD, j.Language)
 	dur := time.Since(start)
 	if err != nil {
-		slog.Error("job failed", "id", j.ID, "dur_ms", dur.Milliseconds(), "model", s.Config.LLMModel, "err", err)
+		slog.Error("job failed", "job_id", j.ID, "req_id", j.RequestID, "dur_ms", dur.Milliseconds(), "model", s.Config.LLMModel, "err", err)
 		s.Store.Update(j.ID, func(j *jobs.Job) {
 			j.Status = jobs.StatusFailed
 			j.Err = err.Error()
 		})
 		return
 	}
-	slog.Info("job done", "id", j.ID, "dur_ms", dur.Milliseconds(), "model", s.Config.LLMModel, "score", res.Score)
+	slog.Info("job done", "job_id", j.ID, "req_id", j.RequestID, "dur_ms", dur.Milliseconds(), "model", s.Config.LLMModel, "score", res.Score)
 	s.Store.Update(j.ID, func(j *jobs.Job) {
 		j.Status = jobs.StatusDone
 		j.Result = res
@@ -124,23 +125,27 @@ func (s *Server) handleAnalyze(w http.ResponseWriter, r *http.Request) {
 			s.badRequest(w, "Could not read PDF text. Is it scanned or encrypted?")
 			return
 		}
-		s.badRequest(w, "Could not read PDF: "+err.Error())
+		slog.Error("pdf parse failed", "req_id", middleware.GetReqID(r.Context()), "err", err)
+		s.badRequest(w, "Could not read PDF. Try a different file.")
 		return
 	}
 
-	j := s.Store.Create(resumeText, jd, lang)
+	reqID := middleware.GetReqID(r.Context())
+	j := s.Store.Create(resumeText, jd, lang, reqID)
 	if err := s.Queue.Enqueue(j); err != nil {
 		if errors.Is(err, jobs.ErrQueueFull) {
 			s.writeError(w, http.StatusServiceUnavailable, "Server busy, try again.")
 			return
 		}
-		s.writeError(w, 500, err.Error())
+		slog.Error("enqueue failed", "req_id", reqID, "job_id", j.ID, "err", err)
+		s.writeError(w, 500, "Could not enqueue job.")
 		return
 	}
+	slog.Info("job enqueued", "job_id", j.ID, "req_id", reqID, "lang", lang)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := s.Templates.RenderPartial(w, "queued", j); err != nil {
-		slog.Error("render queued", "err", err)
+		slog.Error("render queued", "req_id", reqID, "err", err)
 	}
 }
 
@@ -175,13 +180,15 @@ func (s *Server) handleJobPDF(w http.ResponseWriter, r *http.Request) {
 	}
 	data, err := pdf.Render(j.Result.Rewritten)
 	if err != nil {
-		slog.Error("pdf render", "err", err)
+		slog.Error("pdf render", "job_id", j.ID, "err", err)
 		http.Error(w, "render error", 500)
 		return
 	}
 	w.Header().Set("Content-Type", "application/pdf")
 	w.Header().Set("Content-Disposition", `attachment; filename="resume-rewritten.pdf"`)
-	_, _ = w.Write(data)
+	if _, err := w.Write(data); err != nil {
+		slog.Debug("pdf write", "job_id", j.ID, "err", err)
+	}
 }
 
 func (s *Server) badRequest(w http.ResponseWriter, msg string) {
@@ -191,24 +198,7 @@ func (s *Server) badRequest(w http.ResponseWriter, msg string) {
 func (s *Server) writeError(w http.ResponseWriter, code int, msg string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(code)
-	_, _ = w.Write([]byte(`<div class="error">` + htmlEscape(msg) + `</div>`))
-}
-
-func htmlEscape(s string) string {
-	var buf bytes.Buffer
-	for _, r := range s {
-		switch r {
-		case '<':
-			buf.WriteString("&lt;")
-		case '>':
-			buf.WriteString("&gt;")
-		case '&':
-			buf.WriteString("&amp;")
-		case '"':
-			buf.WriteString("&quot;")
-		default:
-			buf.WriteRune(r)
-		}
+	if _, err := w.Write([]byte(`<div class="error">` + html.EscapeString(msg) + `</div>`)); err != nil {
+		slog.Debug("writeError", "err", err)
 	}
-	return buf.String()
 }

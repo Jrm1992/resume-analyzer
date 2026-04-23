@@ -5,11 +5,13 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jose/resume-analyzer/internal/assets"
 )
 
 func (s *Server) Router() http.Handler {
 	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
 	r.Use(recoverMiddleware)
 	r.Use(loggingMiddleware)
 	r.Use(maxBodyMiddleware(s.Config.MaxPDFBytes + 512*1024)) // PDF + JD + form overhead
