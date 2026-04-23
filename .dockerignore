@@ -1,0 +1,9 @@
+.git
+/resume-analyzer
+/bin
+/dist
+coverage.out
+*.test
+.env
+tmp/
+docs/
