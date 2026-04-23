@@ -1,6 +1,8 @@
 package llm
 
-const systemPrompt = `You are an ATS (Applicant Tracking System) resume analyzer. Given a RESUME and a JOB DESCRIPTION, follow these steps internally, then emit a single JSON object. Emit JSON ONLY — no prose, no markdown fences.
+import "strings"
+
+const systemPromptBase = `You are an ATS (Applicant Tracking System) resume analyzer. Given a RESUME and a JOB DESCRIPTION, follow these steps internally, then emit a single JSON object. Emit JSON ONLY — no prose, no markdown fences.
 
 INTERNAL STEPS (do not include in output):
 1. Extract up to 20 concrete technical keywords from the JOB DESCRIPTION (tools, languages, frameworks, cloud services, methodologies, protocols). Normalize casing. Example keywords: "Node.js", "PostgreSQL", "AWS Lambda", "Kubernetes", "pub/sub", "Kafka", "Redis", "JWT", "CI/CD", "microservices", "MongoDB", "Splunk", "New Relic", "Python", "integration tests", "clean architecture".
@@ -39,17 +41,41 @@ OUTPUT SCHEMA (strict):
 RULES:
 - Output at least 10 entries in "job_keywords" when the JD has enough content.
 - "missing" = keywords from job_keywords where present=false, ordered by relevance (most critical first).
-- "strengths" = 3-5 bullets, each citing a specific match (e.g. "Strong Fintech domain experience — directly relevant to the role").
-- "suggestions" must quote exact phrases from the resume, not invent sections.
-- "title_alignment" example: "Resume title 'Software Engineer' is generic; the role targets a Backend Engineer — consider 'Backend Software Engineer'."
-- Respond in the same language as the RESUME (Portuguese if the resume is Portuguese).`
+- "strengths" = 3-5 bullets, each citing a specific match.
+- "suggestions" must quote exact phrases from the resume, not invent sections.`
 
 const strictReminder = `Your previous response was not valid JSON. Return ONLY VALID JSON matching the schema. No prose. No markdown. No code fences. Start with '{' and end with '}'.`
 
-func BuildPrompt(resumeText, jobDescription string) (system, user string) {
-	return systemPrompt, "RESUME:\n" + resumeText + "\n\nJOB DESCRIPTION:\n" + jobDescription
+// Language constants accepted by BuildPrompt.
+const (
+	LangAuto = ""   // detect from resume language
+	LangPT   = "pt"
+	LangEN   = "en"
+	LangES   = "es"
+)
+
+// languageDirective returns the hard instruction appended to the system prompt
+// so ALL free-text string fields (strengths, missing, title_alignment,
+// suggestions[*].rationale, rewritten.Summary, rewritten.Experience.Bullets)
+// come back in the requested language. Keys stay in English.
+func languageDirective(lang string) string {
+	switch strings.ToLower(strings.TrimSpace(lang)) {
+	case "pt", "pt-br", "portuguese", "português":
+		return "\n\nLANGUAGE: Respond in BRAZILIAN PORTUGUESE for every free-text string value (strengths, missing, title_alignment, suggestions, rewritten). JSON keys stay in English. Do NOT mix languages."
+	case "en", "english":
+		return "\n\nLANGUAGE: Respond in ENGLISH for every free-text string value. JSON keys stay in English. Do NOT mix languages."
+	case "es", "spanish", "español":
+		return "\n\nLANGUAGE: Respond in SPANISH for every free-text string value. JSON keys stay in English. Do NOT mix languages."
+	default:
+		return "\n\nLANGUAGE: Detect the resume's language and respond in that SAME language for every free-text string value. JSON keys stay in English. Do NOT mix languages."
+	}
 }
 
-func BuildStrictSystemPrompt() string {
-	return systemPrompt + "\n\n" + strictReminder
+func BuildPrompt(resumeText, jobDescription, language string) (system, user string) {
+	return systemPromptBase + languageDirective(language),
+		"RESUME:\n" + resumeText + "\n\nJOB DESCRIPTION:\n" + jobDescription
+}
+
+func BuildStrictSystemPrompt(language string) string {
+	return systemPromptBase + languageDirective(language) + "\n\n" + strictReminder
 }

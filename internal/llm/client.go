@@ -56,15 +56,16 @@ type chatResponse struct {
 
 // Analyze calls an OpenAI-compatible /chat/completions endpoint once. On
 // malformed JSON in the model's content field, retries once with a stricter
-// reminder prompt. Returns the parsed AnalysisResult.
-func (c *Client) Analyze(ctx context.Context, resumeText, jobDescription string) (*AnalysisResult, error) {
+// reminder prompt. The language parameter constrains the output language for
+// free-text fields (LangAuto | LangPT | LangEN | LangES).
+func (c *Client) Analyze(ctx context.Context, resumeText, jobDescription, language string) (*AnalysisResult, error) {
 	if c.HTTP == nil {
 		c.HTTP = &http.Client{}
 	}
 	ctx, cancel := context.WithTimeout(ctx, c.Timeout)
 	defer cancel()
 
-	sys, user := BuildPrompt(resumeText, jobDescription)
+	sys, user := BuildPrompt(resumeText, jobDescription, language)
 
 	res, err := c.tryOnce(ctx, sys, user)
 	if err == nil {
@@ -74,7 +75,7 @@ func (c *Client) Analyze(ctx context.Context, resumeText, jobDescription string)
 		return nil, err
 	}
 	// Retry once with stricter prompt.
-	res, err = c.tryOnce(ctx, BuildStrictSystemPrompt(), user)
+	res, err = c.tryOnce(ctx, BuildStrictSystemPrompt(language), user)
 	if err != nil {
 		return nil, fmt.Errorf("llm: invalid response after retry: %w", err)
 	}

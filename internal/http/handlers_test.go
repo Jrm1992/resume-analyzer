@@ -18,12 +18,14 @@ import (
 )
 
 type stubAnalyzer struct {
-	result *llm.AnalysisResult
-	err    error
-	delay  time.Duration
+	result   *llm.AnalysisResult
+	err      error
+	delay    time.Duration
+	lastLang string
 }
 
-func (s *stubAnalyzer) Analyze(ctx context.Context, resume, jd string) (*llm.AnalysisResult, error) {
+func (s *stubAnalyzer) Analyze(ctx context.Context, resume, jd, language string) (*llm.AnalysisResult, error) {
+	s.lastLang = language
 	if s.delay > 0 {
 		select {
 		case <-ctx.Done():
@@ -51,12 +53,17 @@ func newTestServer(t *testing.T, a Analyzer) *Server {
 }
 
 func makePDFUpload(t *testing.T, pdfBytes []byte, jd string) (*bytes.Buffer, string) {
+	return makePDFUploadWithLang(t, pdfBytes, jd, "")
+}
+
+func makePDFUploadWithLang(t *testing.T, pdfBytes []byte, jd, lang string) (*bytes.Buffer, string) {
 	t.Helper()
 	var buf bytes.Buffer
 	mw := multipart.NewWriter(&buf)
 	fw, _ := mw.CreateFormFile("resume", "resume.pdf")
 	_, _ = fw.Write(pdfBytes)
 	_ = mw.WriteField("jd", jd)
+	_ = mw.WriteField("lang", lang)
 	_ = mw.Close()
 	return &buf, mw.FormDataContentType()
 }
@@ -83,6 +90,45 @@ func TestAnalyze_RejectsMissingFile(t *testing.T) {
 	s.Router().ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d", rec.Code)
+	}
+}
+
+func TestAnalyze_RejectsUnsupportedLang(t *testing.T) {
+	s := newTestServer(t, &stubAnalyzer{})
+	body, ct := makePDFUploadWithLang(t, makeSimplePDF2(t, "hi"), "some jd", "de")
+	req := httptest.NewRequest("POST", "/analyze", body)
+	req.Header.Set("Content-Type", ct)
+	rec := httptest.NewRecorder()
+	s.Router().ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "Unsupported language") {
+		t.Errorf("body = %s", rec.Body.String())
+	}
+}
+
+func TestAnalyze_ForwardsLangToAnalyzer(t *testing.T) {
+	stub := &stubAnalyzer{result: sampleResult()}
+	s := newTestServer(t, stub)
+	body, ct := makePDFUploadWithLang(t, makeSimplePDF2(t, "Jane Doe"), "Backend role", "pt")
+	req := httptest.NewRequest("POST", "/analyze", body)
+	req.Header.Set("Content-Type", ct)
+	rec := httptest.NewRecorder()
+	s.Router().ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		if stub.lastLang != "" {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if stub.lastLang != "pt" {
+		t.Errorf("lastLang = %q, want %q", stub.lastLang, "pt")
 	}
 }
 

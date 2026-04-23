@@ -22,6 +22,7 @@ type Job struct {
 	UpdatedAt time.Time
 	Resume    string
 	JD        string
+	Language  string // "" (auto), "pt", "en", "es"
 	Result    *llm.AnalysisResult
 	Err       string
 }

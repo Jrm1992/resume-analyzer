@@ -2,7 +2,7 @@
 body { font-family: system-ui, sans-serif; max-width: 960px; margin: 2rem auto; padding: 0 1rem; color: #222; }
 h1 { margin-bottom: 0.25rem; }
 form label { display: block; margin: 0.75rem 0 0.25rem; font-weight: 600; }
-form input[type=file], form textarea { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font: inherit; }
+form input[type=file], form textarea, form select { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font: inherit; background: white; }
 form textarea { min-height: 200px; }
 button { background: #2563eb; color: white; border: 0; padding: 0.6rem 1.2rem; border-radius: 4px; font: inherit; cursor: pointer; }
 button:hover { background: #1d4ed8; }

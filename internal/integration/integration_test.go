@@ -77,6 +77,7 @@ func TestEndToEnd_AgainstRealProvider(t *testing.T) {
 	fw, _ := mw.CreateFormFile("resume", "resume.pdf")
 	_, _ = fw.Write(resumePDF)
 	_ = mw.WriteField("jd", "We're hiring a senior Go engineer. Required: Go, PostgreSQL, Kubernetes.")
+	_ = mw.WriteField("lang", os.Getenv("LLM_LANGUAGE"))
 	mw.Close()
 
 	rec := httptest.NewRecorder()

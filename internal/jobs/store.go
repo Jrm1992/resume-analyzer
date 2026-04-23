@@ -16,7 +16,7 @@ func NewStore() *Store {
 	return &Store{jobs: make(map[string]*Job)}
 }
 
-func (s *Store) Create(resume, jd string) *Job {
+func (s *Store) Create(resume, jd, language string) *Job {
 	now := time.Now()
 	j := &Job{
 		ID:        uuid.NewString(),
@@ -25,6 +25,7 @@ func (s *Store) Create(resume, jd string) *Job {
 		UpdatedAt: now,
 		Resume:    resume,
 		JD:        jd,
+		Language:  language,
 	}
 	s.mu.Lock()
 	s.jobs[j.ID] = j

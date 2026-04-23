@@ -21,7 +21,16 @@ import (
 const maxJDBytes = 50 * 1024
 
 type Analyzer interface {
-	Analyze(ctx context.Context, resume, jd string) (*llm.AnalysisResult, error)
+	Analyze(ctx context.Context, resume, jd, language string) (*llm.AnalysisResult, error)
+}
+
+// allowedLanguages is the set of language codes accepted by handleAnalyze.
+// "" means auto-detect from resume.
+var allowedLanguages = map[string]bool{
+	"":   true,
+	"pt": true,
+	"en": true,
+	"es": true,
 }
 
 type Server struct {
@@ -37,7 +46,7 @@ func (s *Server) JobHandler(ctx context.Context, j *jobs.Job) {
 	cctx, cancel := context.WithTimeout(ctx, s.Config.LLMTimeout)
 	defer cancel()
 	start := time.Now()
-	res, err := s.Analyzer.Analyze(cctx, j.Resume, j.JD)
+	res, err := s.Analyzer.Analyze(cctx, j.Resume, j.JD, j.Language)
 	dur := time.Since(start)
 	if err != nil {
 		slog.Error("job failed", "id", j.ID, "dur_ms", dur.Milliseconds(), "model", s.Config.LLMModel, "err", err)
@@ -103,6 +112,12 @@ func (s *Server) handleAnalyze(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	lang := strings.ToLower(strings.TrimSpace(r.FormValue("lang")))
+	if !allowedLanguages[lang] {
+		s.badRequest(w, "Unsupported language. Use one of: auto, pt, en, es.")
+		return
+	}
+
 	resumeText, err := pdf.Parse(file)
 	if err != nil {
 		if errors.Is(err, pdf.ErrEmptyText) {
@@ -113,7 +128,7 @@ func (s *Server) handleAnalyze(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	j := s.Store.Create(resumeText, jd)
+	j := s.Store.Create(resumeText, jd, lang)
 	if err := s.Queue.Enqueue(j); err != nil {
 		if errors.Is(err, jobs.ErrQueueFull) {
 			s.writeError(w, http.StatusServiceUnavailable, "Server busy, try again.")

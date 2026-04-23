@@ -75,7 +75,7 @@ func TestAnalyze_SuccessParsesJSON(t *testing.T) {
 	defer srv.Close()
 
 	c := testClient(srv.URL, srv.Client(), 5*time.Second)
-	res, err := c.Analyze(context.Background(), "my resume", "my jd")
+	res, err := c.Analyze(context.Background(), "my resume", "my jd", LangAuto)
 	if err != nil {
 		t.Fatalf("Analyze: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestAnalyze_SendsBearerTokenAndJSONFormat(t *testing.T) {
 	defer srv.Close()
 
 	c := testClient(srv.URL, srv.Client(), 5*time.Second)
-	if _, err := c.Analyze(context.Background(), "rrr", "jjj"); err != nil {
+	if _, err := c.Analyze(context.Background(), "rrr", "jjj", LangAuto); err != nil {
 		t.Fatalf("Analyze: %v", err)
 	}
 	if gotAuth != "Bearer test-key" {
@@ -155,7 +155,7 @@ func TestAnalyze_ResponseFormatNone_OmitsField(t *testing.T) {
 
 	c := testClient(srv.URL, srv.Client(), 5*time.Second)
 	c.ResponseFormat = "none"
-	if _, err := c.Analyze(context.Background(), "r", "j"); err != nil {
+	if _, err := c.Analyze(context.Background(), "r", "j", LangAuto); err != nil {
 		t.Fatalf("Analyze: %v", err)
 	}
 	if strings.Contains(bodyStr, `"response_format"`) {
@@ -183,7 +183,7 @@ func TestAnalyze_RetriesOnMalformedJSON(t *testing.T) {
 	defer srv.Close()
 
 	c := testClient(srv.URL, srv.Client(), 5*time.Second)
-	res, err := c.Analyze(context.Background(), "r", "j")
+	res, err := c.Analyze(context.Background(), "r", "j", LangAuto)
 	if err != nil {
 		t.Fatalf("Analyze after retry: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestAnalyze_FailsAfterTwoBadResponses(t *testing.T) {
 	defer srv.Close()
 
 	c := testClient(srv.URL, srv.Client(), 5*time.Second)
-	_, err := c.Analyze(context.Background(), "r", "j")
+	_, err := c.Analyze(context.Background(), "r", "j", LangAuto)
 	if err == nil {
 		t.Fatal("expected error after two malformed responses")
 	}
@@ -220,7 +220,7 @@ func TestAnalyze_PropagatesContextCancel(t *testing.T) {
 	defer srv.Close()
 
 	c := testClient(srv.URL, srv.Client(), 100*time.Millisecond)
-	_, err := c.Analyze(context.Background(), "r", "j")
+	_, err := c.Analyze(context.Background(), "r", "j", LangAuto)
 	if err == nil {
 		t.Fatal("expected timeout error")
 	}
@@ -233,7 +233,7 @@ func TestAnalyze_ReturnsErrorOnHTTP401(t *testing.T) {
 	defer srv.Close()
 
 	c := testClient(srv.URL, srv.Client(), 2*time.Second)
-	_, err := c.Analyze(context.Background(), "r", "j")
+	_, err := c.Analyze(context.Background(), "r", "j", LangAuto)
 	if err == nil {
 		t.Fatal("expected 401 error")
 	}
@@ -249,7 +249,7 @@ func TestAnalyze_ReturnsErrorOnUpstreamErrorField(t *testing.T) {
 	defer srv.Close()
 
 	c := testClient(srv.URL, srv.Client(), 2*time.Second)
-	_, err := c.Analyze(context.Background(), "r", "j")
+	_, err := c.Analyze(context.Background(), "r", "j", LangAuto)
 	if err == nil {
 		t.Fatal("expected error from upstream error field")
 	}

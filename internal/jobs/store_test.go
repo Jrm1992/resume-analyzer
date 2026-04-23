@@ -8,7 +8,7 @@ import (
 
 func TestStore_CreateAndGet(t *testing.T) {
 	s := NewStore()
-	j := s.Create("resume text", "jd text")
+	j := s.Create("resume text", "jd text", "")
 	if j.ID == "" {
 		t.Fatal("empty ID")
 	}
@@ -26,7 +26,7 @@ func TestStore_CreateAndGet(t *testing.T) {
 
 func TestStore_Update(t *testing.T) {
 	s := NewStore()
-	j := s.Create("r", "j")
+	j := s.Create("r", "j", "")
 	s.Update(j.ID, func(j *Job) {
 		j.Status = StatusRunning
 	})
@@ -48,8 +48,8 @@ func TestStore_GetMissing(t *testing.T) {
 
 func TestStore_DeleteOlderThan(t *testing.T) {
 	s := NewStore()
-	j1 := s.Create("a", "b")
-	j2 := s.Create("c", "d")
+	j1 := s.Create("a", "b", "")
+	j2 := s.Create("c", "d", "")
 	// age j1 artificially
 	s.Update(j1.ID, func(j *Job) { j.CreatedAt = time.Now().Add(-2 * time.Hour) })
 
@@ -72,7 +72,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			j := s.Create("r", "j")
+			j := s.Create("r", "j", "")
 			s.Update(j.ID, func(j *Job) { j.Status = StatusRunning })
 			_, _ = s.Get(j.ID)
 		}()
