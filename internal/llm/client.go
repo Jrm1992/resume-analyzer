@@ -7,10 +7,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
 )
+
+// maxLLMRespBytes caps the upstream response body to protect against
+// misbehaving providers streaming unbounded payloads. 2MB accommodates
+// ~4000 output tokens plus JSON envelope with generous headroom.
+const maxLLMRespBytes = 2 << 20
 
 type Client struct {
 	BaseURL        string
@@ -20,6 +26,33 @@ type Client struct {
 	ResponseFormat string // "json_object" | "text" | "none" or "" to omit
 	Timeout        time.Duration
 	HTTP           *http.Client
+}
+
+// NewClient builds a Client with an HTTP transport tuned for a single
+// upstream LLM endpoint: HTTP/2, keepalive, bounded idle pool.
+func NewClient(baseURL, apiKey, model, responseFormat string, maxTokens int, timeout time.Duration) *Client {
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          20,
+		MaxIdleConnsPerHost:   10,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		ForceAttemptHTTP2:     true,
+	}
+	return &Client{
+		BaseURL:        baseURL,
+		APIKey:         apiKey,
+		Model:          model,
+		MaxTokens:      maxTokens,
+		ResponseFormat: responseFormat,
+		Timeout:        timeout,
+		HTTP:           &http.Client{Timeout: timeout + 5*time.Second, Transport: transport},
+	}
 }
 
 type chatMessage struct {
@@ -54,32 +87,68 @@ type chatResponse struct {
 	Error   *errorEnvelope `json:"error,omitempty"`
 }
 
+// firstAttemptBudgetRatio caps how much of the overall deadline the initial
+// attempt may consume. Reserves the remainder for the retry path so a slow
+// first attempt (common with local models generating long JSON) cannot
+// starve the stricter-prompt retry.
+const firstAttemptBudgetRatio = 0.65
+
 // Analyze calls an OpenAI-compatible /chat/completions endpoint once. On
 // malformed JSON in the model's content field, retries once with a stricter
 // reminder prompt. The language parameter constrains the output language for
 // free-text fields (LangAuto | LangPT | LangEN | LangES).
+//
+// Deadline budget: if the caller's context has a deadline (or Client.Timeout
+// is applied below), the first attempt runs under a sub-context capped at
+// firstAttemptBudgetRatio of the remaining time. The retry path then uses
+// the parent deadline directly, so the reserved slice is guaranteed to the
+// retry regardless of how long the first attempt took.
 func (c *Client) Analyze(ctx context.Context, resumeText, jobDescription, language string) (*AnalysisResult, error) {
 	if c.HTTP == nil {
 		c.HTTP = &http.Client{}
 	}
-	ctx, cancel := context.WithTimeout(ctx, c.Timeout)
-	defer cancel()
+	// Only apply Client.Timeout if the caller hasn't already set a deadline.
+	// Avoids double-wrapping and preserves the caller's remaining budget
+	// across both the initial call and the retry path.
+	if _, ok := ctx.Deadline(); !ok && c.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.Timeout)
+		defer cancel()
+	}
 
 	sys, user := BuildPrompt(resumeText, jobDescription, language)
 
-	res, err := c.tryOnce(ctx, sys, user)
+	firstCtx, cancelFirst := firstAttemptContext(ctx)
+	res, err := c.tryOnce(firstCtx, sys, user)
+	cancelFirst()
 	if err == nil {
 		return res, nil
 	}
 	if !errors.Is(err, errInvalidJSON) {
 		return nil, err
 	}
-	// Retry once with stricter prompt.
+	// Retry once with stricter prompt, using the full parent deadline.
 	res, err = c.tryOnce(ctx, BuildStrictSystemPrompt(language), user)
 	if err != nil {
 		return nil, fmt.Errorf("llm: invalid response after retry: %w", err)
 	}
 	return res, nil
+}
+
+// firstAttemptContext derives a sub-context whose deadline is at most
+// firstAttemptBudgetRatio of parent's remaining time. If parent has no
+// deadline, returns parent unchanged with a no-op cancel.
+func firstAttemptContext(parent context.Context) (context.Context, context.CancelFunc) {
+	deadline, ok := parent.Deadline()
+	if !ok {
+		return parent, func() {}
+	}
+	remaining := time.Until(deadline)
+	if remaining <= 0 {
+		return parent, func() {}
+	}
+	budget := time.Duration(float64(remaining) * firstAttemptBudgetRatio)
+	return context.WithTimeout(parent, budget)
 }
 
 var errInvalidJSON = errors.New("invalid JSON in LLM response")
@@ -115,7 +184,7 @@ func (c *Client) tryOnce(ctx context.Context, system, user string) (*AnalysisRes
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxLLMRespBytes))
 	if err != nil {
 		return nil, fmt.Errorf("llm: read body: %w", err)
 	}

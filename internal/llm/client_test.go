@@ -242,6 +242,43 @@ func TestAnalyze_ReturnsErrorOnHTTP401(t *testing.T) {
 	}
 }
 
+// When first attempt returns malformed JSON, retry must still have budget
+// even if the first attempt dragged close to the overall deadline.
+func TestAnalyze_RetryHasReservedBudget(t *testing.T) {
+	bad := mustLoad(t, "../../testdata/llm-responses/malformed.json")
+	good := mustLoad(t, "../../testdata/llm-responses/ok.json")
+
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		var resp openaiChatResp
+		resp.Choices = []openaiChoice{{}}
+		if calls == 1 {
+			// First attempt sleeps nearly all of the first-attempt budget.
+			// With Timeout=1s and ratio 0.65, first budget ~650ms.
+			// Sleep 500ms (under budget, but most of it), return malformed.
+			time.Sleep(500 * time.Millisecond)
+			resp.Choices[0].Message.Content = bad
+		} else {
+			resp.Choices[0].Message.Content = good
+		}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer srv.Close()
+
+	c := testClient(srv.URL, srv.Client(), 1*time.Second)
+	res, err := c.Analyze(context.Background(), "r", "j", LangAuto)
+	if err != nil {
+		t.Fatalf("retry should succeed within reserved budget: %v", err)
+	}
+	if calls != 2 {
+		t.Errorf("expected 2 calls, got %d", calls)
+	}
+	if res.Score != 82 {
+		t.Errorf("score = %d", res.Score)
+	}
+}
+
 func TestAnalyze_ReturnsErrorOnUpstreamErrorField(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"error":{"message":"rate limit exceeded","type":"rate_limit"}}`))

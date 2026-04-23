@@ -47,15 +47,14 @@ func run() error {
 	queue := jobs.NewQueue(cfg.Workers, cfg.QueueCapacity)
 	janitor := jobs.NewJanitor(store, cfg.JobTTL, 5*time.Minute)
 
-	llmClient := &llm.Client{
-		BaseURL:        cfg.LLMBaseURL,
-		APIKey:         cfg.LLMAPIKey,
-		Model:          cfg.LLMModel,
-		MaxTokens:      cfg.LLMMaxTokens,
-		ResponseFormat: cfg.LLMResponseFormat,
-		Timeout:        cfg.LLMTimeout,
-		HTTP:           &nethttp.Client{Timeout: cfg.LLMTimeout + 5*time.Second},
-	}
+	llmClient := llm.NewClient(
+		cfg.LLMBaseURL,
+		cfg.LLMAPIKey,
+		cfg.LLMModel,
+		cfg.LLMResponseFormat,
+		cfg.LLMMaxTokens,
+		cfg.LLMTimeout,
+	)
 
 	srv := &apphttp.Server{
 		Config:    cfg,
@@ -97,9 +96,12 @@ func run() error {
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cfg.LLMTimeout+5*time.Second)
 	defer shutdownCancel()
-	_ = httpSrv.Shutdown(shutdownCtx)
+	if err := httpSrv.Shutdown(shutdownCtx); err != nil {
+		slog.Warn("http shutdown", "err", err)
+	}
 
-	cancel() // signal workers to stop
+	queue.Close() // stop accepting, close channel
+	cancel()      // signal in-flight workers to stop
 	queue.Wait()
 	slog.Info("shutdown complete")
 	return nil
