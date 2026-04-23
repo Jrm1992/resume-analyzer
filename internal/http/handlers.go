@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -39,14 +40,14 @@ func (s *Server) JobHandler(ctx context.Context, j *jobs.Job) {
 	res, err := s.Analyzer.Analyze(cctx, j.Resume, j.JD)
 	dur := time.Since(start)
 	if err != nil {
-		slog.Error("job failed", "id", j.ID, "dur_ms", dur.Milliseconds(), "err", err)
+		slog.Error("job failed", "id", j.ID, "dur_ms", dur.Milliseconds(), "model", s.Config.OllamaModel, "err", err)
 		s.Store.Update(j.ID, func(j *jobs.Job) {
 			j.Status = jobs.StatusFailed
 			j.Err = err.Error()
 		})
 		return
 	}
-	slog.Info("job done", "id", j.ID, "dur_ms", dur.Milliseconds(), "score", res.Score)
+	slog.Info("job done", "id", j.ID, "dur_ms", dur.Milliseconds(), "model", s.Config.OllamaModel, "score", res.Score)
 	s.Store.Update(j.ID, func(j *jobs.Job) {
 		j.Status = jobs.StatusDone
 		j.Result = res
@@ -75,6 +76,20 @@ func (s *Server) handleAnalyze(w http.ResponseWriter, r *http.Request) {
 
 	if hdr.Size > s.Config.MaxPDFBytes {
 		s.badRequest(w, fmt.Sprintf("File too large (limit %d MB).", s.Config.MaxPDFBytes/(1024*1024)))
+		return
+	}
+
+	var head [5]byte
+	if _, err := io.ReadFull(file, head[:]); err != nil {
+		s.badRequest(w, "Upload a PDF file.")
+		return
+	}
+	if string(head[:]) != "%PDF-" {
+		s.badRequest(w, "Upload a PDF file.")
+		return
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		s.writeError(w, 500, "could not read upload")
 		return
 	}
 

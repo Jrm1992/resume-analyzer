@@ -86,6 +86,21 @@ func TestAnalyze_RejectsMissingFile(t *testing.T) {
 	}
 }
 
+func TestAnalyze_RejectsNonPDFUpload(t *testing.T) {
+	s := newTestServer(t, &stubAnalyzer{})
+	body, ct := makePDFUpload(t, []byte("HELLO NOT A PDF"), "some jd")
+	req := httptest.NewRequest("POST", "/analyze", body)
+	req.Header.Set("Content-Type", ct)
+	rec := httptest.NewRecorder()
+	s.Router().ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "Upload a PDF file") {
+		t.Errorf("body missing expected message: %s", rec.Body.String())
+	}
+}
+
 func TestAnalyze_RejectsEmptyJD(t *testing.T) {
 	s := newTestServer(t, &stubAnalyzer{})
 	body, ct := makePDFUpload(t, makeSimplePDF2(t, "hi"), "")
