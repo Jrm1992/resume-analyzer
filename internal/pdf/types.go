@@ -8,10 +8,10 @@ type ContactInfo struct {
 }
 
 type ExperienceEntry struct {
-	Company  string
-	Role     string
-	Dates    string
-	Bullets  []string
+	Company string
+	Role    string
+	Dates   string
+	Bullets []string
 }
 
 type EducationEntry struct {

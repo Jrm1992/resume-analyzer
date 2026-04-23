@@ -6,4 +6,4 @@ import "embed"
 var fs embed.FS
 
 var Templates = fs
-var Static    = fs
+var Static = fs

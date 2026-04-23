@@ -48,7 +48,7 @@ const strictReminder = `Your previous response was not valid JSON. Return ONLY V
 
 // Language constants accepted by BuildPrompt.
 const (
-	LangAuto = ""   // detect from resume language
+	LangAuto = "" // detect from resume language
 	LangPT   = "pt"
 	LangEN   = "en"
 	LangES   = "es"
