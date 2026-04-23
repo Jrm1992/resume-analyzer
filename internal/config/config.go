@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -56,20 +57,24 @@ func Load() (*Config, error) {
 }
 
 func getStr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return def
 	}
-	return def
+	return v
 }
 
 func getInt(key string, def int) (int, error) {
-	v := os.Getenv(key)
+	v := strings.TrimSpace(os.Getenv(key))
 	if v == "" {
 		return def, nil
 	}
 	n, err := strconv.Atoi(v)
 	if err != nil {
 		return 0, fmt.Errorf("env %s: %w", key, err)
+	}
+	if n <= 0 {
+		return 0, fmt.Errorf("env %s: must be positive, got %d", key, n)
 	}
 	return n, nil
 }

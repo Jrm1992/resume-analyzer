@@ -46,6 +46,15 @@ func TestLoad_Defaults(t *testing.T) {
 }
 
 func TestLoad_Overrides(t *testing.T) {
+	t.Setenv("PORT", "")
+	t.Setenv("OLLAMA_URL", "")
+	t.Setenv("OLLAMA_MODEL", "")
+	t.Setenv("MAX_PDF_MB", "")
+	t.Setenv("LLM_TIMEOUT_SEC", "")
+	t.Setenv("WORKERS", "")
+	t.Setenv("QUEUE_CAPACITY", "")
+	t.Setenv("JOB_TTL_MIN", "")
+
 	t.Setenv("PORT", "9000")
 	t.Setenv("OLLAMA_MODEL", "mistral:7b")
 	t.Setenv("MAX_PDF_MB", "5")
@@ -77,5 +86,36 @@ func TestLoad_InvalidInt(t *testing.T) {
 	t.Setenv("PORT", "notanumber")
 	if _, err := Load(); err == nil {
 		t.Fatal("expected error for invalid PORT")
+	}
+}
+
+func TestLoad_RejectsNonPositiveInts(t *testing.T) {
+	cases := []struct{ env, val string }{
+		{"PORT", "0"},
+		{"PORT", "-1"},
+		{"WORKERS", "0"},
+		{"QUEUE_CAPACITY", "0"},
+		{"MAX_PDF_MB", "0"},
+		{"LLM_TIMEOUT_SEC", "0"},
+		{"JOB_TTL_MIN", "0"},
+	}
+	for _, c := range cases {
+		t.Run(c.env+"="+c.val, func(t *testing.T) {
+			t.Setenv(c.env, c.val)
+			if _, err := Load(); err == nil {
+				t.Fatalf("%s=%s: expected error, got nil", c.env, c.val)
+			}
+		})
+	}
+}
+
+func TestLoad_WhitespaceOllamaURL_FallsBackToDefault(t *testing.T) {
+	t.Setenv("OLLAMA_URL", "   ")
+	c, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if c.OllamaURL != "http://localhost:11434" {
+		t.Errorf("OllamaURL = %q, want default", c.OllamaURL)
 	}
 }
