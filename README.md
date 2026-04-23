@@ -99,6 +99,4 @@ LLM_API_KEY=sk-… LLM_MODEL=gpt-4o-mini make test-integration
 
 ## Architecture
 
-- Spec: `docs/superpowers/specs/2026-04-22-resume-analyzer-design.md`
-- LLM swap (this iteration): `docs/superpowers/specs/2026-04-23-llm-providers-design.md`
 - Design system: [`DESIGN.md`](./DESIGN.md)
