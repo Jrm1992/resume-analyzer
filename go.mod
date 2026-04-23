@@ -3,6 +3,8 @@ module github.com/jose/resume-analyzer
 go 1.26.1
 
 require (
+	github.com/go-chi/chi/v5 v5.2.5
+	github.com/google/uuid v1.6.0
 	github.com/johnfercher/maroto/v2 v2.4.0
 	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 )
@@ -11,8 +13,6 @@ require (
 	github.com/boombuler/barcode v1.1.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/f-amaral/go-async v0.3.0 // indirect
-	github.com/go-chi/chi/v5 v5.2.5 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/hhrutter/lzw v1.0.0 // indirect
 	github.com/hhrutter/pkcs7 v0.2.0 // indirect
 	github.com/hhrutter/tiff v1.0.2 // indirect
