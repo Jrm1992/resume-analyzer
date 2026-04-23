@@ -20,14 +20,18 @@ import (
 	"github.com/jose/resume-analyzer/internal/llm"
 )
 
-func TestEndToEnd_AgainstRealOllama(t *testing.T) {
-	base := os.Getenv("OLLAMA_URL")
-	if base == "" {
-		base = "http://localhost:11434"
+func TestEndToEnd_AgainstRealProvider(t *testing.T) {
+	apiKey := os.Getenv("LLM_API_KEY")
+	if apiKey == "" {
+		t.Skip("set LLM_API_KEY to run integration test")
 	}
-	model := os.Getenv("OLLAMA_MODEL")
+	model := os.Getenv("LLM_MODEL")
 	if model == "" {
-		t.Skip("set OLLAMA_MODEL to run integration test")
+		t.Skip("set LLM_MODEL to run integration test")
+	}
+	base := os.Getenv("LLM_BASE_URL")
+	if base == "" {
+		base = "https://api.openai.com/v1"
 	}
 
 	cfg := &config.Config{
@@ -36,8 +40,10 @@ func TestEndToEnd_AgainstRealOllama(t *testing.T) {
 		Workers:       1,
 		QueueCapacity: 4,
 		JobTTL:        time.Hour,
-		OllamaURL:     base,
-		OllamaModel:   model,
+		LLMBaseURL:    base,
+		LLMAPIKey:     apiKey,
+		LLMModel:      model,
+		LLMMaxTokens:  4000,
 	}
 	tpl, err := apphttp.LoadTemplates()
 	if err != nil {
@@ -45,7 +51,14 @@ func TestEndToEnd_AgainstRealOllama(t *testing.T) {
 	}
 	store := jobs.NewStore()
 	queue := jobs.NewQueue(cfg.Workers, cfg.QueueCapacity)
-	client := &llm.Client{BaseURL: cfg.OllamaURL, Model: cfg.OllamaModel, Timeout: cfg.LLMTimeout, HTTP: &http.Client{Timeout: cfg.LLMTimeout + 5*time.Second}}
+	client := &llm.Client{
+		BaseURL:   cfg.LLMBaseURL,
+		APIKey:    cfg.LLMAPIKey,
+		Model:     cfg.LLMModel,
+		MaxTokens: cfg.LLMMaxTokens,
+		Timeout:   cfg.LLMTimeout,
+		HTTP:      &http.Client{Timeout: cfg.LLMTimeout + 5*time.Second},
+	}
 	srv := &apphttp.Server{Config: cfg, Templates: tpl, Store: store, Queue: queue, Analyzer: client}
 
 	ctx, cancel := context.WithCancel(context.Background())

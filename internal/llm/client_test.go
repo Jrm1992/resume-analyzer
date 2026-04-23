@@ -12,13 +12,15 @@ import (
 	"time"
 )
 
-// Ollama /api/chat response envelope (non-streaming).
-type ollamaChatResp struct {
+// OpenAI /chat/completions response envelope (non-streaming).
+type openaiChoice struct {
 	Message struct {
 		Role    string `json:"role"`
 		Content string `json:"content"`
 	} `json:"message"`
-	Done bool `json:"done"`
+}
+type openaiChatResp struct {
+	Choices []openaiChoice `json:"choices"`
 }
 
 func mustLoad(t *testing.T, path string) string {
@@ -30,10 +32,16 @@ func mustLoad(t *testing.T, path string) string {
 	return string(b)
 }
 
+// respondWith returns a handler that serves /chat/completions with the given
+// inner model-message content. It also asserts Bearer auth + path + body shape.
 func respondWith(content string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/chat" {
+		if r.URL.Path != "/chat/completions" {
 			http.Error(w, "not found", 404)
+			return
+		}
+		if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
+			http.Error(w, "missing bearer", 401)
 			return
 		}
 		body, _ := io.ReadAll(r.Body)
@@ -41,10 +49,22 @@ func respondWith(content string) http.HandlerFunc {
 			http.Error(w, "prompt missing resume", 400)
 			return
 		}
-		resp := ollamaChatResp{Done: true}
-		resp.Message.Role = "assistant"
-		resp.Message.Content = content
+		var resp openaiChatResp
+		resp.Choices = []openaiChoice{{}}
+		resp.Choices[0].Message.Role = "assistant"
+		resp.Choices[0].Message.Content = content
 		_ = json.NewEncoder(w).Encode(resp)
+	}
+}
+
+func testClient(baseURL string, httpc *http.Client, timeout time.Duration) *Client {
+	return &Client{
+		BaseURL:   baseURL,
+		APIKey:    "test-key",
+		Model:     "test-model",
+		MaxTokens: 1024,
+		Timeout:   timeout,
+		HTTP:      httpc,
 	}
 }
 
@@ -53,7 +73,7 @@ func TestAnalyze_SuccessParsesJSON(t *testing.T) {
 	srv := httptest.NewServer(respondWith(content))
 	defer srv.Close()
 
-	c := &Client{BaseURL: srv.URL, Model: "test", Timeout: 5 * time.Second, HTTP: srv.Client()}
+	c := testClient(srv.URL, srv.Client(), 5*time.Second)
 	res, err := c.Analyze(context.Background(), "my resume", "my jd")
 	if err != nil {
 		t.Fatalf("Analyze: %v", err)
@@ -84,6 +104,42 @@ func TestAnalyze_SuccessParsesJSON(t *testing.T) {
 	}
 }
 
+func TestAnalyze_SendsBearerTokenAndJSONFormat(t *testing.T) {
+	var gotAuth, gotCT string
+	var bodyStr string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		gotCT = r.Header.Get("Content-Type")
+		b, _ := io.ReadAll(r.Body)
+		bodyStr = string(b)
+		var resp openaiChatResp
+		resp.Choices = []openaiChoice{{}}
+		resp.Choices[0].Message.Content = mustLoad(t, "../../testdata/llm-responses/ok.json")
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer srv.Close()
+
+	c := testClient(srv.URL, srv.Client(), 5*time.Second)
+	if _, err := c.Analyze(context.Background(), "rrr", "jjj"); err != nil {
+		t.Fatalf("Analyze: %v", err)
+	}
+	if gotAuth != "Bearer test-key" {
+		t.Errorf("Authorization = %q", gotAuth)
+	}
+	if gotCT != "application/json" {
+		t.Errorf("Content-Type = %q", gotCT)
+	}
+	if !strings.Contains(bodyStr, `"response_format":{"type":"json_object"}`) {
+		t.Errorf("body missing response_format: %s", bodyStr)
+	}
+	if !strings.Contains(bodyStr, `"model":"test-model"`) {
+		t.Errorf("body missing model: %s", bodyStr)
+	}
+	if !strings.Contains(bodyStr, `"max_tokens":1024`) {
+		t.Errorf("body missing max_tokens: %s", bodyStr)
+	}
+}
+
 func TestAnalyze_RetriesOnMalformedJSON(t *testing.T) {
 	bad := mustLoad(t, "../../testdata/llm-responses/malformed.json")
 	good := mustLoad(t, "../../testdata/llm-responses/ok.json")
@@ -91,18 +147,19 @@ func TestAnalyze_RetriesOnMalformedJSON(t *testing.T) {
 	calls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
-		resp := ollamaChatResp{Done: true}
-		resp.Message.Role = "assistant"
+		var resp openaiChatResp
+		resp.Choices = []openaiChoice{{}}
+		resp.Choices[0].Message.Role = "assistant"
 		if calls == 1 {
-			resp.Message.Content = bad
+			resp.Choices[0].Message.Content = bad
 		} else {
-			resp.Message.Content = good
+			resp.Choices[0].Message.Content = good
 		}
 		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer srv.Close()
 
-	c := &Client{BaseURL: srv.URL, Model: "test", Timeout: 5 * time.Second, HTTP: srv.Client()}
+	c := testClient(srv.URL, srv.Client(), 5*time.Second)
 	res, err := c.Analyze(context.Background(), "r", "j")
 	if err != nil {
 		t.Fatalf("Analyze after retry: %v", err)
@@ -120,7 +177,7 @@ func TestAnalyze_FailsAfterTwoBadResponses(t *testing.T) {
 	srv := httptest.NewServer(respondWith(bad))
 	defer srv.Close()
 
-	c := &Client{BaseURL: srv.URL, Model: "test", Timeout: 5 * time.Second, HTTP: srv.Client()}
+	c := testClient(srv.URL, srv.Client(), 5*time.Second)
 	_, err := c.Analyze(context.Background(), "r", "j")
 	if err == nil {
 		t.Fatal("expected error after two malformed responses")
@@ -139,25 +196,41 @@ func TestAnalyze_PropagatesContextCancel(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &Client{BaseURL: srv.URL, Model: "test", Timeout: 100 * time.Millisecond, HTTP: srv.Client()}
+	c := testClient(srv.URL, srv.Client(), 100*time.Millisecond)
 	_, err := c.Analyze(context.Background(), "r", "j")
 	if err == nil {
 		t.Fatal("expected timeout error")
 	}
 }
 
-func TestAnalyze_ReturnsErrorOnHTTP404(t *testing.T) {
+func TestAnalyze_ReturnsErrorOnHTTP401(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, `{"error":"model not found"}`, 404)
+		http.Error(w, `{"error":{"message":"invalid api key","type":"auth_error"}}`, 401)
 	}))
 	defer srv.Close()
 
-	c := &Client{BaseURL: srv.URL, Model: "missing:1b", Timeout: 2 * time.Second, HTTP: srv.Client()}
+	c := testClient(srv.URL, srv.Client(), 2*time.Second)
 	_, err := c.Analyze(context.Background(), "r", "j")
 	if err == nil {
-		t.Fatal("expected 404 error")
+		t.Fatal("expected 401 error")
 	}
-	if !strings.Contains(err.Error(), "model") && !strings.Contains(err.Error(), "404") {
+	if !strings.Contains(err.Error(), "401") && !strings.Contains(err.Error(), "api key") {
+		t.Errorf("err = %v", err)
+	}
+}
+
+func TestAnalyze_ReturnsErrorOnUpstreamErrorField(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"error":{"message":"rate limit exceeded","type":"rate_limit"}}`))
+	}))
+	defer srv.Close()
+
+	c := testClient(srv.URL, srv.Client(), 2*time.Second)
+	_, err := c.Analyze(context.Background(), "r", "j")
+	if err == nil {
+		t.Fatal("expected error from upstream error field")
+	}
+	if !strings.Contains(err.Error(), "rate limit") {
 		t.Errorf("err = %v", err)
 	}
 }

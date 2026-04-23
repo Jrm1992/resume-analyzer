@@ -40,14 +40,14 @@ func (s *Server) JobHandler(ctx context.Context, j *jobs.Job) {
 	res, err := s.Analyzer.Analyze(cctx, j.Resume, j.JD)
 	dur := time.Since(start)
 	if err != nil {
-		slog.Error("job failed", "id", j.ID, "dur_ms", dur.Milliseconds(), "model", s.Config.OllamaModel, "err", err)
+		slog.Error("job failed", "id", j.ID, "dur_ms", dur.Milliseconds(), "model", s.Config.LLMModel, "err", err)
 		s.Store.Update(j.ID, func(j *jobs.Job) {
 			j.Status = jobs.StatusFailed
 			j.Err = err.Error()
 		})
 		return
 	}
-	slog.Info("job done", "id", j.ID, "dur_ms", dur.Milliseconds(), "model", s.Config.OllamaModel, "score", res.Score)
+	slog.Info("job done", "id", j.ID, "dur_ms", dur.Milliseconds(), "model", s.Config.LLMModel, "score", res.Score)
 	s.Store.Update(j.ID, func(j *jobs.Job) {
 		j.Status = jobs.StatusDone
 		j.Result = res

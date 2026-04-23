@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,8 +11,10 @@ import (
 
 type Config struct {
 	Port          int
-	OllamaURL     string
-	OllamaModel   string
+	LLMBaseURL    string
+	LLMAPIKey     string
+	LLMModel      string
+	LLMMaxTokens  int
 	MaxPDFBytes   int64
 	LLMTimeout    time.Duration
 	Workers       int
@@ -44,10 +47,24 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	maxTokens, err := getInt("LLM_MAX_TOKENS", 4000)
+	if err != nil {
+		return nil, err
+	}
+
+	apiKey := getStr("LLM_API_KEY", "")
+	if apiKey == "" {
+		return nil, errors.New("env LLM_API_KEY: required (set to your provider API key)")
+	}
+
+	baseURL := strings.TrimRight(getStr("LLM_BASE_URL", "https://api.openai.com/v1"), "/")
+
 	return &Config{
 		Port:          port,
-		OllamaURL:     getStr("OLLAMA_URL", "http://localhost:11434"),
-		OllamaModel:   getStr("OLLAMA_MODEL", "llama3.1:8b"),
+		LLMBaseURL:    baseURL,
+		LLMAPIKey:     apiKey,
+		LLMModel:      getStr("LLM_MODEL", "gpt-4o-mini"),
+		LLMMaxTokens:  maxTokens,
 		MaxPDFBytes:   int64(maxMB) * 1024 * 1024,
 		LLMTimeout:    time.Duration(timeoutSec) * time.Second,
 		Workers:       workers,

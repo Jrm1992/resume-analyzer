@@ -43,10 +43,12 @@ func run() error {
 	janitor := jobs.NewJanitor(store, cfg.JobTTL, 5*time.Minute)
 
 	llmClient := &llm.Client{
-		BaseURL: cfg.OllamaURL,
-		Model:   cfg.OllamaModel,
-		Timeout: cfg.LLMTimeout,
-		HTTP:    &nethttp.Client{Timeout: cfg.LLMTimeout + 5*time.Second},
+		BaseURL:   cfg.LLMBaseURL,
+		APIKey:    cfg.LLMAPIKey,
+		Model:     cfg.LLMModel,
+		MaxTokens: cfg.LLMMaxTokens,
+		Timeout:   cfg.LLMTimeout,
+		HTTP:      &nethttp.Client{Timeout: cfg.LLMTimeout + 5*time.Second},
 	}
 
 	srv := &apphttp.Server{
@@ -71,7 +73,7 @@ func run() error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		slog.Info("listening", "addr", httpSrv.Addr, "model", cfg.OllamaModel)
+		slog.Info("listening", "addr", httpSrv.Addr, "model", cfg.LLMModel, "base_url", cfg.LLMBaseURL)
 		if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, nethttp.ErrServerClosed) {
 			errCh <- err
 		}
