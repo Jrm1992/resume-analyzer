@@ -67,6 +67,21 @@ func TestAnalyze_SuccessParsesJSON(t *testing.T) {
 	if res.Rewritten.Name != "Jane Doe" {
 		t.Errorf("rewritten name = %q", res.Rewritten.Name)
 	}
+	if len(res.JobKeywords) != 4 {
+		t.Errorf("job_keywords len = %d, want 4", len(res.JobKeywords))
+	}
+	var present int
+	for _, k := range res.JobKeywords {
+		if k.Present {
+			present++
+		}
+	}
+	if present != 2 {
+		t.Errorf("present keywords = %d, want 2", present)
+	}
+	if res.TitleAlignment == "" {
+		t.Error("title_alignment empty")
+	}
 }
 
 func TestAnalyze_RetriesOnMalformedJSON(t *testing.T) {

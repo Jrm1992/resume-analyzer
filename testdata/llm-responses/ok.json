@@ -1,6 +1,13 @@
 {
   "score": 82,
   "breakdown": { "skills": 85, "experience": 80, "education": 75 },
+  "job_keywords": [
+    { "name": "Node.js", "present": true },
+    { "name": "PostgreSQL", "present": true },
+    { "name": "Kubernetes", "present": false },
+    { "name": "gRPC", "present": false }
+  ],
+  "title_alignment": "Resume title 'Backend Developer' aligns with the target role.",
   "missing": ["Kubernetes", "gRPC"],
   "strengths": ["Go proficiency", "backend systems"],
   "suggestions": [

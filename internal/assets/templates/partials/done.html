@@ -10,11 +10,31 @@
     <li>Education: {{.Result.Breakdown.Education}}%</li>
   </ul>
 
-  <h3>Strengths</h3>
-  <div>{{range .Result.Strengths}}<span class="chip">{{.}}</span>{{else}}<em>None highlighted.</em>{{end}}</div>
+  {{if .Result.TitleAlignment}}
+  <h3>Title alignment</h3>
+  <p>{{.Result.TitleAlignment}}</p>
+  {{end}}
 
-  <h3>Missing keywords</h3>
-  <div>{{range .Result.Missing}}<span class="chip">{{.}}</span>{{else}}<em>None detected.</em>{{end}}</div>
+  {{if .Result.JobKeywords}}
+  <h3>ATS keyword match</h3>
+  <div class="kw-grid">
+    {{range .Result.JobKeywords}}
+      <span class="kw {{if .Present}}kw-ok{{else}}kw-miss{{end}}">
+        {{if .Present}}✓{{else}}✗{{end}} {{.Name}}
+      </span>
+    {{end}}
+  </div>
+  {{end}}
+
+  <h3>Strengths</h3>
+  <ul class="plain-list">
+    {{range .Result.Strengths}}<li>▸ {{.}}</li>{{else}}<li><em>None highlighted.</em></li>{{end}}
+  </ul>
+
+  <h3>Problems / missing</h3>
+  <ul class="plain-list">
+    {{range .Result.Missing}}<li>✗ {{.}}</li>{{else}}<li><em>None detected.</em></li>{{end}}
+  </ul>
 
   <h3>Suggested rewrites</h3>
   {{range .Result.Suggestions}}
