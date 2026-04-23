@@ -2,6 +2,7 @@ package pdf
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/johnfercher/maroto/v2"
 	"github.com/johnfercher/maroto/v2/pkg/components/text"
@@ -102,24 +103,14 @@ func addSection(m core.Maroto, title string) {
 }
 
 func formatContact(c ContactInfo) string {
-	parts := []string{}
-	for _, p := range []string{c.Email, c.Phone, c.Location, c.LinkedIn} {
+	all := [...]string{c.Email, c.Phone, c.Location, c.LinkedIn}
+	parts := make([]string, 0, len(all))
+	for _, p := range all {
 		if p != "" {
 			parts = append(parts, p)
 		}
 	}
-	return joinSep(parts, " • ")
+	return strings.Join(parts, " • ")
 }
 
-func joinSkills(s []string) string { return joinSep(s, ", ") }
-
-func joinSep(parts []string, sep string) string {
-	out := ""
-	for i, p := range parts {
-		if i > 0 {
-			out += sep
-		}
-		out += p
-	}
-	return out
-}
+func joinSkills(s []string) string { return strings.Join(s, ", ") }
