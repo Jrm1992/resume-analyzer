@@ -1,6 +1,6 @@
 # Resume Analyzer
 
-Web app: score a PDF resume against a job description and get an AI-suggested rewrite. Talks to any **OpenAI-compatible `/v1/chat/completions` endpoint** — OpenAI, Anthropic (via their compat endpoint), OpenRouter, LiteLLM, Groq, etc.
+Web app: score a PDF resume against a job description and get an AI-suggested rewrite. Talks to any **OpenAI-compatible `/v1/chat/completions` endpoint** — OpenAI, Anthropic (via their compat endpoint), OpenRouter, LiteLLM, Groq, etc. Ships with a self-hosted htmx UI and a light/dark theme toggle.
 
 ## Quickstart
 
@@ -59,6 +59,14 @@ Then open http://localhost:8080.
 | `QUEUE_CAPACITY`  | `100`                         | no       | Queue buffer                                     |
 | `JOB_TTL_MIN`     | `60`                          | no       | In-memory job cleanup threshold                  |
 
+## UI & Design
+
+Server-rendered with Go `html/template` + htmx — no frontend build step. Styling follows a PostHog-inspired design system: warm sage/olive palette, IBM Plex Sans, orange hover flash, 4–6px radii.
+
+- **Dark mode** — toggle in the top nav. Respects `prefers-color-scheme` by default, persists the override in `localStorage`.
+- **Design spec** — tokens, component rules, do's/don'ts in [`DESIGN.md`](./DESIGN.md).
+- **Assets** — vanilla CSS + templates embedded via `//go:embed` under `internal/assets/`.
+
 ## Docker
 
 ```bash
@@ -86,3 +94,4 @@ LLM_API_KEY=sk-… LLM_MODEL=gpt-4o-mini make test-integration
 
 - Spec: `docs/superpowers/specs/2026-04-22-resume-analyzer-design.md`
 - LLM swap (this iteration): `docs/superpowers/specs/2026-04-23-llm-providers-design.md`
+- Design system: [`DESIGN.md`](./DESIGN.md)
