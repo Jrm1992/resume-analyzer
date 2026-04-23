@@ -1,0 +1,70 @@
+package jobs
+
+import (
+	"sync"
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type Store struct {
+	mu   sync.RWMutex
+	jobs map[string]*Job
+}
+
+func NewStore() *Store {
+	return &Store{jobs: make(map[string]*Job)}
+}
+
+func (s *Store) Create(resume, jd string) *Job {
+	now := time.Now()
+	j := &Job{
+		ID:        uuid.NewString(),
+		Status:    StatusQueued,
+		CreatedAt: now,
+		UpdatedAt: now,
+		Resume:    resume,
+		JD:        jd,
+	}
+	s.mu.Lock()
+	s.jobs[j.ID] = j
+	s.mu.Unlock()
+	return j
+}
+
+func (s *Store) Get(id string) (*Job, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	j, ok := s.jobs[id]
+	if !ok {
+		return nil, false
+	}
+	// Return a shallow copy to prevent callers from mutating store state directly.
+	cp := *j
+	return &cp, true
+}
+
+func (s *Store) Update(id string, mut func(*Job)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	j, ok := s.jobs[id]
+	if !ok {
+		return
+	}
+	mut(j)
+	j.UpdatedAt = time.Now()
+}
+
+func (s *Store) DeleteOlderThan(d time.Duration) int {
+	cutoff := time.Now().Add(-d)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	n := 0
+	for id, j := range s.jobs {
+		if j.CreatedAt.Before(cutoff) {
+			delete(s.jobs, id)
+			n++
+		}
+	}
+	return n
+}
