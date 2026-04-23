@@ -1,4 +1,4 @@
-.PHONY: build run test test-race test-integration cover docker clean fmt vet
+.PHONY: build run test test-race test-integration cover docker clean fmt vet lint
 
 BINARY := resume-analyzer
 PKG := ./...
@@ -27,6 +27,10 @@ fmt:
 
 vet:
 	go vet $(PKG)
+
+lint:
+	@command -v golangci-lint >/dev/null || { echo "install golangci-lint: https://golangci-lint.run/welcome/install/"; exit 1; }
+	golangci-lint run $(PKG)
 
 docker:
 	docker build -t resume-analyzer:dev .
