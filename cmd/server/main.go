@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/jose/resume-analyzer/internal/config"
 	apphttp "github.com/jose/resume-analyzer/internal/http"
 	"github.com/jose/resume-analyzer/internal/jobs"
@@ -27,6 +28,10 @@ func main() {
 func run() error {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
+
+	// Load .env if present. Existing env vars take precedence (godotenv.Load
+	// does not overwrite). Missing .env is not an error.
+	loadDotenv()
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -97,4 +102,22 @@ func run() error {
 	queue.Wait()
 	slog.Info("shutdown complete")
 	return nil
+}
+
+// loadDotenv looks for a .env file in the current directory (and $DOTENV_PATH
+// if set) and loads it into the process env. Missing file is silent. Existing
+// env vars are NOT overwritten (shell exports win).
+func loadDotenv() {
+	path := os.Getenv("DOTENV_PATH")
+	if path == "" {
+		path = ".env"
+	}
+	if _, err := os.Stat(path); err != nil {
+		return
+	}
+	if err := godotenv.Load(path); err != nil {
+		slog.Warn("dotenv: failed to load", "path", path, "err", err)
+		return
+	}
+	slog.Info("dotenv: loaded", "path", path)
 }

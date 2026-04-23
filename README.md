@@ -4,9 +4,19 @@ Web app: score a PDF resume against a job description and get an AI-suggested re
 
 ## Quickstart
 
-Set an API key, then build and run.
+Two options: `.env` file (easiest) or shell `export`.
 
-### OpenAI (default)
+### Option 1: `.env` file
+
+```bash
+cp .env.example .env
+# edit .env, set LLM_API_KEY and LLM_MODEL
+make run
+```
+
+`.env` is gitignored. Shell-exported vars override `.env` values. Point elsewhere with `DOTENV_PATH=/custom/path/.env make run`.
+
+### Option 2: shell export
 
 ```bash
 export LLM_API_KEY=sk-…
