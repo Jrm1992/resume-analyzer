@@ -1,5 +1,12 @@
 # Resume Analyzer
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.svg">
+    <img alt="Resume Analyzer — score and rewrite your résumé with any LLM" src="docs/hero-light.svg" width="100%">
+  </picture>
+</p>
+
 Web app: score a PDF resume against a job description and get an AI-suggested rewrite. Talks to any **OpenAI-compatible `/v1/chat/completions` endpoint** — OpenAI, Anthropic (via their compat endpoint), OpenRouter, LiteLLM, Groq, etc. Ships with a self-hosted htmx UI and a light/dark theme toggle.
 
 ## Quickstart
