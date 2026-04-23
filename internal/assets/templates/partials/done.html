@@ -1,53 +1,70 @@
 {{define "done"}}
 <div id="result">
-  <h2>Match score: {{.Result.Score}}%</h2>
-  <div class="score-bar"><div class="score-bar-fill" style="width:{{.Result.Score}}%"></div></div>
+  <section class="card">
+    <p class="section-title">Match score</p>
+    <div class="score">
+      <span class="score-value">{{.Result.Score}}%</span>
+    </div>
+    <div class="score-bar"><div class="score-bar-fill" style="width:{{.Result.Score}}%"></div></div>
+  </section>
 
-  <h3>Breakdown</h3>
-  <ul>
-    <li>Skills: {{.Result.Breakdown.Skills}}%</li>
-    <li>Experience: {{.Result.Breakdown.Experience}}%</li>
-    <li>Education: {{.Result.Breakdown.Education}}%</li>
-  </ul>
+  <section class="card">
+    <h3>Breakdown</h3>
+    <ul class="breakdown">
+      <li><span>Skills</span><strong>{{.Result.Breakdown.Skills}}%</strong></li>
+      <li><span>Experience</span><strong>{{.Result.Breakdown.Experience}}%</strong></li>
+      <li><span>Education</span><strong>{{.Result.Breakdown.Education}}%</strong></li>
+    </ul>
+  </section>
 
   {{if .Result.TitleAlignment}}
-  <h3>Title alignment</h3>
-  <p>{{.Result.TitleAlignment}}</p>
+  <section class="card">
+    <h3>Title alignment</h3>
+    <p class="alignment">{{.Result.TitleAlignment}}</p>
+  </section>
   {{end}}
 
   {{if .Result.JobKeywords}}
-  <h3>ATS keyword match</h3>
-  <div class="kw-grid">
-    {{range .Result.JobKeywords}}
-      <span class="kw {{if .Present}}kw-ok{{else}}kw-miss{{end}}">
-        {{if .Present}}✓{{else}}✗{{end}} {{.Name}}
-      </span>
-    {{end}}
-  </div>
+  <section class="card">
+    <h3>ATS keyword match</h3>
+    <div class="kw-grid">
+      {{range .Result.JobKeywords}}
+        <span class="kw {{if .Present}}kw-ok{{else}}kw-miss{{end}}">
+          {{if .Present}}✓{{else}}✗{{end}} {{.Name}}
+        </span>
+      {{end}}
+    </div>
+  </section>
   {{end}}
 
-  <h3>Strengths</h3>
-  <ul class="plain-list">
-    {{range .Result.Strengths}}<li>▸ {{.}}</li>{{else}}<li><em>None highlighted.</em></li>{{end}}
-  </ul>
+  <section class="card">
+    <h3>Strengths</h3>
+    <ul class="plain-list">
+      {{range .Result.Strengths}}<li>▸ {{.}}</li>{{else}}<li><em>None highlighted.</em></li>{{end}}
+    </ul>
+  </section>
 
-  <h3>Problems / missing</h3>
-  <ul class="plain-list">
-    {{range .Result.Missing}}<li>✗ {{.}}</li>{{else}}<li><em>None detected.</em></li>{{end}}
-  </ul>
+  <section class="card">
+    <h3>Problems / missing</h3>
+    <ul class="plain-list">
+      {{range .Result.Missing}}<li>✗ {{.}}</li>{{else}}<li><em>None detected.</em></li>{{end}}
+    </ul>
+  </section>
 
-  <h3>Suggested rewrites</h3>
-  {{range .Result.Suggestions}}
-    <div class="suggestion">
-      <strong>{{.Section}}</strong>
-      <div><del>{{.Original}}</del></div>
-      <div><ins>{{.Suggested}}</ins></div>
-      <div><small>{{.Rationale}}</small></div>
+  <section class="card">
+    <h3>Suggested rewrites</h3>
+    {{range .Result.Suggestions}}
+      <div class="suggestion">
+        <strong>{{.Section}}</strong>
+        <div><del>{{.Original}}</del></div>
+        <div><ins>{{.Suggested}}</ins></div>
+        <small>{{.Rationale}}</small>
+      </div>
+    {{else}}<p><em>No suggestions.</em></p>{{end}}
+
+    <div class="actions">
+      <a href="/jobs/{{.ID}}/pdf"><button type="button" class="btn-secondary">Download rewritten PDF</button></a>
     </div>
-  {{else}}<p><em>No suggestions.</em></p>{{end}}
-
-  <p style="margin-top:1.5rem">
-    <a href="/jobs/{{.ID}}/pdf"><button type="button">Download rewritten PDF</button></a>
-  </p>
+  </section>
 </div>
 {{end}}

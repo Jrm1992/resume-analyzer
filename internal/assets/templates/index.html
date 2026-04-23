@@ -1,20 +1,75 @@
 {{define "content"}}
-<form hx-post="/analyze" hx-target="#result" hx-swap="innerHTML" hx-encoding="multipart/form-data">
-  <label for="resume">Resume (PDF)</label>
-  <input type="file" id="resume" name="resume" accept="application/pdf" required>
+<div class="work-grid">
+  <section class="card form-card">
+    <p class="section-title">Start here</p>
+    <h2 class="card-title">Upload &amp; analyze</h2>
+    <form hx-post="/analyze" hx-target="#result" hx-swap="innerHTML" hx-encoding="multipart/form-data">
+      <div class="field">
+        <label for="resume">Resume (PDF)</label>
+        <input type="file" id="resume" name="resume" accept="application/pdf" required>
+        <p class="field-hint">Max 10 MB. Text-based PDFs only — scanned images won't parse.</p>
+      </div>
 
-  <label for="jd">Job description</label>
-  <textarea id="jd" name="jd" placeholder="Paste the full job description here…" required></textarea>
+      <div class="field">
+        <label for="jd">Job description</label>
+        <textarea id="jd" name="jd" placeholder="Paste the full job description here…" required></textarea>
+      </div>
 
-  <label for="lang">Output language</label>
-  <select id="lang" name="lang">
-    <option value="">Auto (match resume)</option>
-    <option value="pt">Português (Brasil)</option>
-    <option value="en">English</option>
-    <option value="es">Español</option>
-  </select>
+      <div class="field">
+        <label for="lang">Output language</label>
+        <select id="lang" name="lang">
+          <option value="">Auto (match resume)</option>
+          <option value="pt">Português (Brasil)</option>
+          <option value="en">English</option>
+          <option value="es">Español</option>
+        </select>
+      </div>
 
-  <div style="margin-top:1rem"><button type="submit">Analyze</button></div>
-</form>
+      <div class="actions">
+        <button type="submit">Analyze résumé →</button>
+        <span class="field-hint">Typically 20–60 seconds.</span>
+      </div>
+    </form>
+  </section>
+
+  <aside class="sidebar">
+    <section class="card">
+      <p class="section-title">How it works</p>
+      <ol class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <div>
+            <p class="step-title">Extract</p>
+            <p class="step-body">We parse your PDF and normalize the text — no OCR, no tracking.</p>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <div>
+            <p class="step-title">Score</p>
+            <p class="step-body">The LLM compares your résumé against the JD and returns a structured score.</p>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <div>
+            <p class="step-title">Rewrite</p>
+            <p class="step-body">Targeted bullet-level rewrites with reasoning, plus a downloadable PDF.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="card tips">
+      <p class="section-title">Tips</p>
+      <ul class="plain-list tight">
+        <li>→ Paste the <em>whole</em> JD — requirements, responsibilities, nice-to-haves.</li>
+        <li>→ Leave language on <em>Auto</em> unless you want a translation.</li>
+        <li>→ Bigger models = better rewrites. <code>gpt-4o-mini</code> is a solid default.</li>
+      </ul>
+    </section>
+  </aside>
+</div>
+
 <div id="result"></div>
 {{end}}

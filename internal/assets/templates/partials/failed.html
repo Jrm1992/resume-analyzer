@@ -1,6 +1,8 @@
 {{define "failed"}}
 <div id="result">
-  <div class="error"><strong>Analysis failed:</strong> {{.Err}}</div>
+  <section class="card error">
+    <strong>Analysis failed:</strong> {{.Err}}
+  </section>
   <p><a href="/">Try again</a></p>
 </div>
 {{end}}
