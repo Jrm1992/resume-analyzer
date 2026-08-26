@@ -16,6 +16,7 @@ import (
 	apphttp "github.com/jose/resume-analyzer/internal/http"
 	"github.com/jose/resume-analyzer/internal/jobs"
 	"github.com/jose/resume-analyzer/internal/llm"
+	"github.com/jose/resume-analyzer/internal/secrets"
 )
 
 func main() {
@@ -29,8 +30,12 @@ func run() error {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
 
-	// Load .env if present. Existing env vars take precedence (godotenv.Load
-	// does not overwrite). Missing .env is not an error.
+	if sec, err := secrets.Load(context.Background(), secrets.SecretName); err != nil {
+		slog.Warn("secrets: failed to load from Secrets Manager", "err", err)
+	} else if sec != nil {
+		secrets.SetIfAbsent(sec)
+	}
+
 	loadDotenv()
 
 	cfg, err := config.Load()
