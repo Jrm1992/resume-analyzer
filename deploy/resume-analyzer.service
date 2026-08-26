@@ -1,0 +1,14 @@
+[Unit]
+Description=Resume Analyzer
+After=network.target
+
+[Service]
+Type=simple
+User=deploy
+WorkingDirectory=/opt/resume-analyzer
+ExecStart=/opt/resume-analyzer/resume-analyzer
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
