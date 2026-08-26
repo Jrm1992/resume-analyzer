@@ -8,3 +8,5 @@ coverage.out
 .env
 .air.toml
 tmp/
+
+resume-analyzer-linux-*
