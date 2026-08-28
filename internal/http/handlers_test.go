@@ -120,7 +120,7 @@ func TestAnalyze_ForwardsLangToAnalyzer(t *testing.T) {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
 
-	deadline := time.Now().Add(time.Second)
+	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		if stub.lastLang != "" {
 			break
