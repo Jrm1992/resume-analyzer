@@ -1,7 +1,0 @@
-remote: error: Trace: 90068a591e43e407684865cbbc9c6c9ab7ff5c6457f363782edc4944107da2ef        
-remote: error: See https://gh.io/lfs for more information.        
-remote: error: File infra/.terraform/providers/registry.terraform.io/hashicorp/aws/5.100.0/darwin_arm64/terraform-provider-aws_v5.100.0_x5 is 648.39 MB; this exceeds GitHub's file size limit of 100.00 MB        
-remote: error: GH001: Large files detected. You may want to try Git Large File Storage - https://git-lfs.github.com.        
-To https://github.com/Jrm1992/resume-analyzer.git
- ! [remote rejected] infra/terraform-migration -> infra/terraform-migration (pre-receive hook declined)
-error: failed to push some refs to 'https://github.com/Jrm1992/resume-analyzer.git'
