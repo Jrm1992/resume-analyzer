@@ -1,9 +1,10 @@
-name: Terraform Deploy (Floci Prod)
+name: Validate Terraform Config
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -12,8 +13,8 @@ env:
   TF_VERSION: "1.9"
 
 jobs:
-  terraform:
-    name: Terraform
+  validate:
+    name: Validate Terraform
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,12 +29,8 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      # Note: This workflow assumes a self-hosted runner that can reach the Floci VM
-      # Or run terraform manually on the Floci VM:
-      #   cd /path/to/repo/infra && terraform init && terraform apply -var-file=environments/prod.tfvars
-      - name: Terraform Init (local backend for testing)
-        run: |
-          terraform init
+      - name: Terraform Init
+        run: terraform init
 
       - name: Terraform Format
         run: terraform fmt -check -recursive
@@ -41,12 +38,9 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      - name: Terraform Plan
+      - name: Terraform Plan (dry-run)
         run: |
           terraform plan \
             -var-file="environments/prod.tfvars" \
+            -var="image_tag=test" \
             -out=tfplan
-
-      - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve tfplan
