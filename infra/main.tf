@@ -186,7 +186,7 @@ locals {
           name      = name
           valueFrom = arn
         }
-      ]
+      ] + (var.config_secret_arn != "" ? [{ name = "CONFIG_SECRET", valueFrom = var.config_secret_arn }] : [])
       logConfiguration = {
         logDriver = "awslogs"
         options = {

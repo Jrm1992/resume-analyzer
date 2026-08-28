@@ -60,10 +60,11 @@ env_vars = [
   { name = "JOB_TTL_MIN", value = "60" }
 ]
 
-# Secret ARN in Floci localstack Secrets Manager
-secrets = {
-  LLM_API_KEY = "arn:aws:secretsmanager:us-east-1:000000000000:secret:resume-analyzer/prod/llm-api-key-xxxxx"
-}
+# Config secret ARN - single JSON secret with multiple keys (resume-analyzer/config)
+config_secret_arn = "arn:aws:secretsmanager:us-east-1:000000000000:secret:resume-analyzer/config-2G7SXF"
+
+# Individual secrets (optional, for additional secrets not in config secret)
+secrets = {}
 
 secrets_to_create = {}
 

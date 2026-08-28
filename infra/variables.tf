@@ -159,6 +159,12 @@ variable "secrets" {
   type        = map(string)
   default     = {}
 }
+# Config secret - single JSON secret containing multiple keys (e.g., resume-analyzer/config)
+variable "config_secret_arn" {
+  description = "ARN of a single JSON secret containing multiple config keys (injected as env vars)"
+  type        = string
+  default     = ""
+}
 
 # Secrets to create in Secrets Manager (optional - for initial setup)
 variable "secrets_to_create" {
