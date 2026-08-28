@@ -37,16 +37,16 @@ func mustLoad(t *testing.T, path string) string {
 func respondWith(content string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/chat/completions" {
-			http.Error(w, "not found", 404)
+			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
 		if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
-			http.Error(w, "missing bearer", 401)
+			http.Error(w, "missing bearer", http.StatusUnauthorized)
 			return
 		}
 		body, _ := io.ReadAll(r.Body)
 		if !strings.Contains(string(body), "RESUME") {
-			http.Error(w, "prompt missing resume", 400)
+			http.Error(w, "prompt missing resume", http.StatusBadRequest)
 			return
 		}
 		var resp openaiChatResp
@@ -228,7 +228,7 @@ func TestAnalyze_PropagatesContextCancel(t *testing.T) {
 
 func TestAnalyze_ReturnsErrorOnHTTP401(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, `{"error":{"message":"invalid api key","type":"auth_error"}}`, 401)
+		http.Error(w, `{"error":{"message":"invalid api key","type":"auth_error"}}`, http.StatusUnauthorized)
 	}))
 	defer srv.Close()
 

@@ -8,18 +8,23 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
 	"github.com/jose/resume-analyzer/internal/config"
 	"github.com/jose/resume-analyzer/internal/jobs"
 	"github.com/jose/resume-analyzer/internal/llm"
 	"github.com/jose/resume-analyzer/internal/pdf"
 )
 
-const maxJDBytes = 50 * 1024
+const (
+	maxJDBytes         = 50 * 1024
+	maxMultipartMemory = 32 << 20 // 32 MB
+)
 
 type Analyzer interface {
 	Analyze(ctx context.Context, resume, jd, language string) (*llm.AnalysisResult, error)
@@ -73,16 +78,21 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAnalyze(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(s.Config.MaxPDFBytes + 256*1024); err != nil {
+	//nolint:gosec // maxMultipartMemory is a bounded constant (32MB), not user-controlled
+	if err := r.ParseMultipartForm(maxMultipartMemory); err != nil {
 		s.badRequest(w, "Upload too large or malformed.")
 		return
 	}
-	file, hdr, err := r.FormFile("resume")
-	if err != nil {
+	file, hdr, ferr := r.FormFile("resume")
+	if ferr != nil {
 		s.badRequest(w, "Upload a PDF file.")
 		return
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			slog.Debug("close upload file", "err", err)
+		}
+	}()
 
 	if hdr.Size > s.Config.MaxPDFBytes {
 		s.badRequest(w, fmt.Sprintf("File too large (limit %d MB).", s.Config.MaxPDFBytes/(1024*1024)))
@@ -90,7 +100,7 @@ func (s *Server) handleAnalyze(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var head [5]byte
-	if _, err := io.ReadFull(file, head[:]); err != nil {
+	if _, rerr := io.ReadFull(file, head[:]); rerr != nil {
 		s.badRequest(w, "Upload a PDF file.")
 		return
 	}
@@ -98,7 +108,7 @@ func (s *Server) handleAnalyze(w http.ResponseWriter, r *http.Request) {
 		s.badRequest(w, "Upload a PDF file.")
 		return
 	}
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
+	if _, serr := file.Seek(0, io.SeekStart); serr != nil {
 		s.writeError(w, 500, "could not read upload")
 		return
 	}
@@ -185,10 +195,28 @@ func (s *Server) handleJobPDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/pdf")
-	w.Header().Set("Content-Disposition", `attachment; filename="resume-rewritten.pdf"`)
+	filename := sanitizeFilename("resume-rewritten.pdf")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+	//nolint:gosec // data is generated PDF content, not user input
 	if _, err := w.Write(data); err != nil {
 		slog.Debug("pdf write", "job_id", j.ID, "err", err)
 	}
+}
+
+// sanitizeFilename removes path traversal sequences and unsafe characters.
+func sanitizeFilename(name string) string {
+	name = filepath.Base(name)
+	name = strings.ReplaceAll(name, "..", "")
+	name = strings.Map(func(r rune) rune {
+		if r >= 32 && r < 127 && r != '"' && r != ';' && r != ',' {
+			return r
+		}
+		return '_'
+	}, name)
+	if name == "" || name == "." || name == ".." {
+		return "resume-rewritten.pdf"
+	}
+	return name
 }
 
 func (s *Server) badRequest(w http.ResponseWriter, msg string) {

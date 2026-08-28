@@ -8,10 +8,12 @@ import (
 	nethttp "net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
+
 	"github.com/jose/resume-analyzer/internal/config"
 	apphttp "github.com/jose/resume-analyzer/internal/http"
 	"github.com/jose/resume-analyzer/internal/jobs"
@@ -120,6 +122,7 @@ func loadDotenv() {
 	if path == "" {
 		path = ".env"
 	}
+	path = filepath.Clean(path)
 	if _, err := os.Stat(path); err != nil {
 		return
 	}

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
@@ -11,17 +12,17 @@ import (
 
 func recoverMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
+		defer func(ctx context.Context) {
 			if rec := recover(); rec != nil {
 				slog.Error("panic",
-					"req_id", middleware.GetReqID(r.Context()),
+					"req_id", middleware.GetReqID(ctx),
 					"err", rec,
 					"stack", string(debug.Stack()),
 					"path", r.URL.Path,
 				)
 				http.Error(w, "internal error", http.StatusInternalServerError)
 			}
-		}()
+		}(r.Context())
 		next.ServeHTTP(w, r)
 	})
 }
