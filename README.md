@@ -101,3 +101,4 @@ LLM_API_KEY=sk-… LLM_MODEL=gpt-4o-mini make test-integration
 
 - Design system: [`DESIGN.md`](./DESIGN.md)
 # trigger deploy Thu Aug 27 21:59:10 -03 2026
+# trigger Thu Aug 27 22:19:48 -03 2026
