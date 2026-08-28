@@ -95,6 +95,24 @@ module "taskdef" {
 }
 
 # ============================================================
+# ALB Module
+# ============================================================
+module "alb" {
+  source = "./modules/alb"
+
+  project_name       = var.project_name
+  stack_name         = var.stack_name
+  alb_name           = local.full_name
+  internal           = true
+  vpc_id             = var.network.vpc_id
+  subnet_ids         = var.network.subnet_ids
+  security_group_ids = var.network.security_group_ids
+  listener_port      = var.container.port
+  listener_protocol  = "HTTP"
+  tags               = local.tags
+}
+
+# ============================================================
 # Load Balancer Module
 # ============================================================
 module "loadbalancer" {
@@ -105,7 +123,7 @@ module "loadbalancer" {
   target_group_name     = local.target_group_name
   container_port        = var.container.port
   vpc_id                = var.network.vpc_id
-  listener_arn          = var.load_balancer.internal.listener_arn
+  listener_arn          = module.alb.listener_arn
   rule_priority         = var.load_balancer.internal.rule_priority
   host_header           = var.load_balancer.internal.host_header
   health_check_path     = var.health_check.path
@@ -131,7 +149,7 @@ module "service" {
   security_group_ids  = var.network.security_group_ids
   container_port      = var.container.port
   target_group_arn    = module.loadbalancer.target_group_arn
-  listener_arn        = var.load_balancer.internal.listener_arn
+  listener_arn        = module.alb.listener_arn
   rule_priority       = var.load_balancer.internal.rule_priority
   host_header         = var.load_balancer.internal.host_header
   tags                = local.tags

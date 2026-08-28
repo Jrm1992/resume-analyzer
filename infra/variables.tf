@@ -121,14 +121,14 @@ variable "load_balancer" {
   description = "Load balancer configuration"
   type = object({
     internal = object({
-      listener_arn  = string
+      listener_arn  = optional(string, "")
       rule_priority = number
       host_header   = string
     })
   })
   default = {
     internal = {
-      listener_arn  = "arn:aws:elasticloadbalancing:us-east-1:000000000000:listener/app/resume-analyzer-dev-alb/xxxxxxxx/xxxxxxxx"
+      listener_arn  = ""
       rule_priority = 10
       host_header   = "resume-analyzer.localhost"
     }

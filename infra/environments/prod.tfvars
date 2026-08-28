@@ -3,8 +3,7 @@
 
 aws_region      = "us-east-1"
 is_localstack   = true
-localstack_host = "floci"
-
+localstack_host = "127.0.0.1"
 project_name = "resume-analyzer"
 stack_name   = "prod"
 
@@ -24,11 +23,11 @@ container = {
   memory = "2048"
 }
 
-# Floci localstack network IDs (adjust to your Floci VM)
+# Floci localstack network IDs (default VPC in LocalStack)
 network = {
-  vpc_id             = "vpc-0flocilocalstack"
-  subnet_ids         = ["subnet-0flocilocalstack1", "subnet-0flocilocalstack2"]
-  security_group_ids = ["sg-0flocilocalstack"]
+  vpc_id             = "vpc-default"
+  subnet_ids         = ["subnet-default-a", "subnet-default-b", "subnet-default-c"]
+  security_group_ids = ["sg-default"]
 }
 
 health_check = {
@@ -38,10 +37,10 @@ health_check = {
   retries  = 3
 }
 
-# Floci ALB listener (adjust to your Floci setup)
+# Floci ALB listener (rule_priority and host_header only; listener_arn created by ALB module)
 load_balancer = {
   internal = {
-    listener_arn  = "arn:aws:elasticloadbalancing:us-east-1:000000000000:listener/app/floci-alb/xxxxxxxx/xxxxxxxx"
+    listener_arn  = ""
     rule_priority = 10
     host_header   = "resume-analyzer.floci"
   }
