@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -182,11 +183,15 @@ func (c *Client) tryOnce(ctx context.Context, system, user string) (*AnalysisRes
 	if err != nil {
 		return nil, fmt.Errorf("llm: http: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("close response body", "err", cerr)
+		}
+	}()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxLLMRespBytes))
-	if err != nil {
-		return nil, fmt.Errorf("llm: read body: %w", err)
+	body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxLLMRespBytes))
+	if readErr != nil {
+		return nil, fmt.Errorf("llm: read body: %w", readErr)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("llm: upstream status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))

@@ -1,24 +1,41 @@
-name: Deploy
+name: Build & Deploy to Floci (Prod)
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Docker image tag (default: git sha)"
+        required: false
 
 permissions:
   contents: read
   packages: write
+  id-token: write
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository_owner }}/resume-analyzer
+  TF_VERSION: "1.9"
+  # Ajuste este label para o que você usou no ./config.sh --labels
+  FLOCI_RUNNER_LABEL: floci-runner
 
 jobs:
   build-and-push:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
+    outputs:
+      image_digest: ${{ steps.push.outputs.digest }}
+      image_tag: ${{ steps.meta.outputs.tags }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Log in to GHCR
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -31,41 +48,57 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha
-            type=raw,value=latest
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=${{ github.event.inputs.image_tag || github.sha }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
+      - name: Build and push (multi-arch)
+        id: push
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
 
   deploy:
-    runs-on: ubuntu-latest
+    name: Terraform Deploy to Floci
     needs: build-and-push
+    runs-on: [self-hosted, ${{ env.FLOCI_RUNNER_LABEL }}]
+    defaults:
+      run:
+        working-directory: infra
+    environment: production
     steps:
-      - name: Deploy to Floci
-        uses: appleboy/ssh-action@v1
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          host: ${{ secrets.FLOCI_HOST }}
-          username: ${{ secrets.FLOCI_USER }}
-          key: ${{ secrets.FLOCI_SSH_KEY }}
-          script: |
-            docker pull ghcr.io/${{ github.repository }}:latest
-            docker stop resume-analyzer 2>/dev/null || true
-            docker rm resume-analyzer 2>/dev/null || true
-            docker run -d \
-              --name resume-analyzer \
-              --network floci-localstack_default \
-              --restart unless-stopped \
-              -p 8080:8080 \
-              -e AWS_ENDPOINT_URL=http://floci:4566 \
-              -e AWS_DEFAULT_REGION=us-east-1 \
-              -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
-              -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-              -e AWS_SECRETS_ENABLED=true \
-              ghcr.io/${{ github.repository }}:latest
-            sleep 3
-            curl -sf http://localhost:8080/ || echo "Health check failed"
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          IMAGE_TAG="${{ needs.build-and-push.outputs.image_tag }}"
+          terraform plan \
+            -var-file="environments/prod.tfvars" \
+            -var="image_tag=${IMAGE_TAG}" \
+            -out=tfplan
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve tfplan

@@ -1,4 +1,4 @@
-.PHONY: build build-linux run test test-race test-integration cover docker clean fmt vet lint deploy
+.PHONY: build build-linux run test test-race test-integration cover docker clean fmt vet lint deploy infra-build infra-up infra-preview infra-destroy
 
 BINARY := resume-analyzer
 PKG := ./...
@@ -53,3 +53,15 @@ deploy: build-linux
 
 clean:
 	rm -f $(BINARY) $(BINARY)-linux-arm64 coverage.out
+
+infra-build:
+	cd infra && go build ./...
+
+infra-up:
+	cd infra && pulumi up --stack dev
+
+infra-preview:
+	cd infra && pulumi preview --stack dev
+
+infra-destroy:
+	cd infra && pulumi destroy --stack dev

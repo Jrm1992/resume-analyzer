@@ -1,0 +1,82 @@
+config:
+  # AWS provider configuration for Floci localstack
+  aws:region: us-east-1
+
+  resume-analyzer:projectName: resume-analyzer
+  resume-analyzer:stackName: dev
+  resume-analyzer:isLocalstack: true
+
+  resume-analyzer:service:
+    clusterName: floci-cluster
+    serviceName: resume-analyzer
+    desiredCount: 1
+
+  resume-analyzer:container:
+    port: 8080
+    cpu: "512"
+    memory: "1024"
+
+  resume-analyzer:network:
+    vpcId: vpc-0flocilocalstack
+    subnetIds:
+      - subnet-0flocilocalstack1
+      - subnet-0flocilocalstack2
+    securityGroupId: "sg-0flocilocalstack"
+
+  resume-analyzer:healthCheck:
+    path: /health
+    interval: 30
+    timeout: 10
+    retries: 3
+
+  resume-analyzer:loadBalancer:
+    internal:
+      listenerArn: "arn:aws:elasticloadbalancing:us-east-1:000000000000:listener/app/resume-analyzer-dev-alb/xxxxxxxx/xxxxxxxx"
+      rulePriority: 10
+      hostHeader: "resume-analyzer.localhost"
+
+  # Non-secret env vars - values in config
+  # Secret values (LLM_API_KEY) are set via GitHub Secrets -> pulumi config set --secret
+  resume-analyzer:envVars:
+    - name: LLM_BASE_URL
+      value: "https://api.openai.com/v1"
+    - name: LLM_MODEL
+      value: "gpt-4o-mini"
+    - name: LLM_MAX_TOKENS
+      value: "4000"
+    - name: LLM_TIMEOUT_SEC
+      value: "120"
+    - name: LLM_RESPONSE_FORMAT
+      value: "json_object"
+    - name: MAX_PDF_MB
+      value: "10"
+    - name: PORT
+      value: "8080"
+    - name: WORKERS
+      value: "2"
+    - name: QUEUE_CAPACITY
+      value: "100"
+    - name: JOB_TTL_MIN
+      value: "60"
+
+  resume-analyzer:scaling:
+    enabled: false
+    minCapacity: 1
+    maxCapacity: 3
+    cpu:
+      targetValue: 70
+      scaleInCooldown: 300
+      scaleOutCooldown: 60
+    memory:
+      targetValue: 80
+      scaleInCooldown: 300
+      scaleOutCooldown: 60
+    scheduledActions: []
+
+  resume-analyzer:iam:
+    taskRoleArn: ""
+    executionRoleArn: ""
+
+  resume-analyzer:dns:
+    zoneName: ""
+    recordName: ""

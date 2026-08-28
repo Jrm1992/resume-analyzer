@@ -58,7 +58,7 @@ func Load(ctx context.Context, secretName string) (map[string]string, error) {
 func SetIfAbsent(m map[string]string) {
 	for k, v := range m {
 		if os.Getenv(k) == "" {
-			os.Setenv(k, v)
+			_ = os.Setenv(k, v)
 		}
 	}
 }
