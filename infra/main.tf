@@ -163,11 +163,14 @@ module "autoscaling" {
 # Locals for container definitions
 # ============================================================
 locals {
+  # Build secrets list with optional config_secret_arn
+  secrets_list = concat(
+    [for name, arn in var.secrets : { name = name, valueFrom = arn }],
+    var.config_secret_arn != "" ? [{ name = "CONFIG_SECRET", valueFrom = var.config_secret_arn }] : []
+  )
+
   container_definitions = jsonencode([
     {
-      name      = "app"
-      image     = "ghcr.io/${var.project_name}:${var.image_tag}"
-      essential = true
       portMappings = [
         {
           containerPort = var.container.port
@@ -181,12 +184,7 @@ locals {
           value = env.value
         }
       ]
-      secrets = [
-        for name, arn in var.secrets : {
-          name      = name
-          valueFrom = arn
-        }
-      ] + (var.config_secret_arn != "" ? [{ name = "CONFIG_SECRET", valueFrom = var.config_secret_arn }] : [])
+      secrets = local.secrets_list
       logConfiguration = {
         logDriver = "awslogs"
         options = {
