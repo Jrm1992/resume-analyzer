@@ -21,7 +21,7 @@ resource "aws_lb_listener" "main" {
   default_action {
     type = "fixed-response"
     fixed_response {
-      status_code = "404"
+      status_code  = "404"
       content_type = "text/plain"
       message_body = "Not Found"
     }

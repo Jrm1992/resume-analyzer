@@ -4,8 +4,8 @@
 aws_region      = "us-east-1"
 is_localstack   = true
 localstack_host = "127.0.0.1"
-project_name = "resume-analyzer"
-stack_name   = "prod"
+project_name    = "resume-analyzer"
+stack_name      = "prod"
 
 # Credentials for localstack (any values work)
 aws_access_key = "test"
