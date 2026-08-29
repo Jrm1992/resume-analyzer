@@ -135,6 +135,16 @@ module "loadbalancer" {
 }
 
 # ============================================================
+# ECS Cluster Module
+# ============================================================
+module "cluster" {
+  source = "./modules/cluster"
+
+  cluster_name = var.service.cluster_name
+  tags         = local.tags
+}
+
+# ============================================================
 # ECS Service Module
 # ============================================================
 module "service" {
