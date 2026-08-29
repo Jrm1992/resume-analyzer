@@ -146,7 +146,6 @@ variable "env_vars" {
   description = "Environment variables for the container (non-secret values)"
   type        = list(object({ name = string, value = string }))
   default = [
-    { name = "LLM_BASE_URL", value = "https://api.openai.com/v1" },
     { name = "LLM_MODEL", value = "gpt-4o-mini" },
     { name = "LLM_MAX_TOKENS", value = "4000" },
     { name = "LLM_TIMEOUT_SEC", value = "120" },

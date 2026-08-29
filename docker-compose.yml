@@ -2,7 +2,7 @@ services:
   app:
     build: .
     environment:
-      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_BASE_URL: ${LLM_BASE_URL:?set LLM_BASE_URL in the host env}
       LLM_API_KEY: ${LLM_API_KEY:?set LLM_API_KEY in the host env}
       LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
       LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-4000}

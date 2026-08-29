@@ -56,7 +56,7 @@ Then open http://localhost:8080.
 | Env var           | Default                       | Required | Purpose                                          |
 | ----------------- | ----------------------------- | -------- | ------------------------------------------------ |
 | `LLM_API_KEY`     | —                             | **yes**  | Bearer token for the upstream API                |
-| `LLM_BASE_URL`    | `https://api.openai.com/v1`   | no       | Chat Completions base (no `/chat/completions`)   |
+| `LLM_BASE_URL`    | —                             | **yes**  | Chat Completions base (no `/chat/completions`)   |
 | `LLM_MODEL`       | `gpt-4o-mini`                 | no       | Model identifier for the chosen provider         |
 | `LLM_MAX_TOKENS`  | `4000`                        | no       | `max_tokens` in request body                     |
 | `LLM_TIMEOUT_SEC` | `120`                         | no       | Per-job inference cap                            |
