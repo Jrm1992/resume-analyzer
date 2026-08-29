@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,14 +19,18 @@ import (
 )
 
 type stubAnalyzer struct {
-	result   *llm.AnalysisResult
-	err      error
-	delay    time.Duration
+	result *llm.AnalysisResult
+	err    error
+	delay  time.Duration
+
+	mu       sync.Mutex
 	lastLang string
 }
 
 func (s *stubAnalyzer) Analyze(ctx context.Context, resume, jd, language string) (*llm.AnalysisResult, error) {
+	s.mu.Lock()
 	s.lastLang = language
+	s.mu.Unlock()
 	if s.delay > 0 {
 		select {
 		case <-ctx.Done():
@@ -34,6 +39,12 @@ func (s *stubAnalyzer) Analyze(ctx context.Context, resume, jd, language string)
 		}
 	}
 	return s.result, s.err
+}
+
+func (s *stubAnalyzer) getLastLang() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.lastLang
 }
 
 func newTestServer(t *testing.T, a Analyzer) *Server {
@@ -122,13 +133,13 @@ func TestAnalyze_ForwardsLangToAnalyzer(t *testing.T) {
 
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
-		if stub.lastLang != "" {
+		if stub.getLastLang() != "" {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	if stub.lastLang != "pt" {
-		t.Errorf("lastLang = %q, want %q", stub.lastLang, "pt")
+	if got := stub.getLastLang(); got != "pt" {
+		t.Errorf("lastLang = %q, want %q", got, "pt")
 	}
 }
 
