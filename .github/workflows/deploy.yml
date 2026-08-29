@@ -86,13 +86,26 @@ jobs:
       - name: Terraform Format
         run: terraform fmt -check -recursive
 
+      - name: Terraform Validate
+        run: terraform validate
+
 
       - name: Terraform Import Existing Resources
         run: |
+          IMAGE_TAG="${{ needs.build-and-push.outputs.image_tag }}"
           set +e
-          terraform import module.iam.aws_iam_role.task[0] resume-analyzer-prod-task 2>/dev/null || true
-          terraform import module.iam.aws_iam_role.execution[0] resume-analyzer-prod-execution 2>/dev/null || true
-          terraform import module.taskdef.aws_cloudwatch_log_group.main /ecs/resume-analyzer-prod 2>/dev/null || true
+          terraform import \
+            -var-file="environments/prod.tfvars" \
+            -var="image_tag=${IMAGE_TAG}" \
+            module.iam.aws_iam_role.task[0] resume-analyzer-prod-task || true
+          terraform import \
+            -var-file="environments/prod.tfvars" \
+            -var="image_tag=${IMAGE_TAG}" \
+            module.iam.aws_iam_role.execution[0] resume-analyzer-prod-execution || true
+          terraform import \
+            -var-file="environments/prod.tfvars" \
+            -var="image_tag=${IMAGE_TAG}" \
+            module.taskdef.aws_cloudwatch_log_group.main /ecs/resume-analyzer-prod || true
           set -e
 
       - name: Terraform Plan
