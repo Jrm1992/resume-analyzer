@@ -59,12 +59,9 @@ env_vars = [
   { name = "JOB_TTL_MIN", value = "60" }
 ]
 
-config_secret_arn = ""
+config_secret_arn = "arn:aws:secretsmanager:us-east-1:000000000000:secret:resume-analyzer/config-2G7SXF"
 
-# Individual secrets (optional, for additional secrets not in config secret)
-secrets = {
-  LLM_API_KEY = "arn:aws:secretsmanager:us-east-1:000000000000:secret:resume-analyzer/llm-api-key-1NA2Z4"
-}
+secrets = {}
 
 secrets_to_create = {}
 

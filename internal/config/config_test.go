@@ -171,3 +171,58 @@ func TestLoad_WhitespaceBaseURL_FallsBackToDefault(t *testing.T) {
 		t.Errorf("LLMBaseURL = %q, want default", c.LLMBaseURL)
 	}
 }
+func TestLoad_ConfigSecretFillsAPIKey(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("CONFIG_SECRET", `{"LLM_API_KEY":"from-secret","LLM_MODEL":"gpt-5-mini"}`)
+
+	c, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if c.LLMAPIKey != "from-secret" {
+		t.Errorf("LLMAPIKey = %q, want from-secret", c.LLMAPIKey)
+	}
+	if c.LLMModel != "gpt-5-mini" {
+		t.Errorf("LLMModel = %q, want gpt-5-mini", c.LLMModel)
+	}
+}
+
+func TestLoad_ExplicitEnvWinsOverConfigSecret(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("CONFIG_SECRET", `{"LLM_API_KEY":"from-secret","LLM_MODEL":"from-secret-model"}`)
+	t.Setenv("LLM_API_KEY", "explicit-key")
+
+	c, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if c.LLMAPIKey != "explicit-key" {
+		t.Errorf("LLMAPIKey = %q, want explicit-key", c.LLMAPIKey)
+	}
+	if c.LLMModel != "from-secret-model" {
+		t.Errorf("LLMModel = %q, want from-secret-model", c.LLMModel)
+	}
+}
+
+func TestLoad_InvalidConfigSecretFails(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("CONFIG_SECRET", "not-json")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("Load succeeded, want error for invalid CONFIG_SECRET JSON")
+	}
+}
+
+func TestLoad_EmptyConfigSecretIgnored(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("CONFIG_SECRET", "")
+	t.Setenv("LLM_API_KEY", "k")
+
+	c, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if c.LLMAPIKey != "k" {
+		t.Errorf("LLMAPIKey = %q, want k", c.LLMAPIKey)
+	}
+}

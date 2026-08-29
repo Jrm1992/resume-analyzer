@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -23,7 +24,29 @@ type Config struct {
 	JobTTL            time.Duration
 }
 
+var applySecretEnv = func() error {
+	raw, ok := os.LookupEnv("CONFIG_SECRET")
+	if !ok || strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	var m map[string]string
+	if err := json.Unmarshal([]byte(raw), &m); err != nil {
+		return fmt.Errorf("env CONFIG_SECRET: %w", err)
+	}
+	for k, v := range m {
+		if cur, set := os.LookupEnv(k); !set || strings.TrimSpace(cur) == "" {
+			if err := os.Setenv(k, v); err != nil {
+				return fmt.Errorf("env CONFIG_SECRET: setting %s: %w", k, err)
+			}
+		}
+	}
+	return nil
+}
+
 func Load() (*Config, error) {
+	if err := applySecretEnv(); err != nil {
+		return nil, err
+	}
 	port, err := getInt("PORT", 8080)
 	if err != nil {
 		return nil, err
