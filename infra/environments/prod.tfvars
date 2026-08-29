@@ -47,7 +47,6 @@ load_balancer = {
 }
 
 env_vars = [
-  { name = "LLM_BASE_URL", value = "https://api.openai.com/v1" },
   { name = "LLM_MODEL", value = "gpt-4o-mini" },
   { name = "LLM_MAX_TOKENS", value = "4000" },
   { name = "LLM_TIMEOUT_SEC", value = "120" },
