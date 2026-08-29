@@ -25,6 +25,7 @@ locals {
   project_name = var.project_name
   stack_name   = var.stack_name
   full_name    = "${var.project_name}-${var.stack_name}"
+  image_repo   = var.image_repo
   tags = merge(
     {
       Project     = var.project_name
@@ -192,11 +193,13 @@ locals {
   # Build secrets list with optional config_secret_arn
   secrets_list = concat(
     [for name, arn in var.secrets : { name = name, valueFrom = arn }],
-    var.config_secret_arn != "" ? [{ name = "CONFIG_SECRET", valueFrom = var.config_secret_arn }] : []
+    var.config_secret_arn != "" ? [{ name = "LLM_API_KEY", valueFrom = "${var.config_secret_arn}:LLM_API_KEY" }] : []
   )
 
   container_definitions = jsonencode([
     {
+      name  = "app"
+      image = "${local.image_repo}:${var.image_tag}"
       portMappings = [
         {
           containerPort = var.container.port
@@ -219,13 +222,7 @@ locals {
           "awslogs-stream-prefix" = "ecs"
         }
       }
-      healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:${var.container.port}${var.health_check.path} || exit 1"]
-        interval    = var.health_check.interval
-        timeout     = var.health_check.timeout
-        retries     = var.health_check.retries
-        startPeriod = 10
-      }
+      essential = true
     }
   ])
 }

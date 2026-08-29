@@ -46,6 +46,12 @@ variable "image_tag" {
   default     = "latest"
 }
 
+variable "image_repo" {
+  description = "Docker image repository (e.g. ghcr.io/owner/name)"
+  type        = string
+  default     = "ghcr.io/jrm1992/resume-analyzer"
+}
+
 variable "extra_tags" {
   description = "Extra tags to apply to all resources"
   type        = map(string)

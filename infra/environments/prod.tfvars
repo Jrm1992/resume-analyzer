@@ -31,7 +31,7 @@ network = {
 }
 
 health_check = {
-  path     = "/health"
+  path     = "/healthz"
   interval = 30
   timeout  = 10
   retries  = 3
@@ -59,11 +59,12 @@ env_vars = [
   { name = "JOB_TTL_MIN", value = "60" }
 ]
 
-# Config secret ARN - single JSON secret with multiple keys (resume-analyzer/config)
-config_secret_arn = "arn:aws:secretsmanager:us-east-1:000000000000:secret:resume-analyzer/config-2G7SXF"
+config_secret_arn = ""
 
 # Individual secrets (optional, for additional secrets not in config secret)
-secrets = {}
+secrets = {
+  LLM_API_KEY = "arn:aws:secretsmanager:us-east-1:000000000000:secret:resume-analyzer/llm-api-key-1NA2Z4"
+}
 
 secrets_to_create = {}
 
