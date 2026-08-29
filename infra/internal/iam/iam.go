@@ -43,10 +43,10 @@ func newTaskRole(ctx *pulumi.Context, cfg *config.StackConfig, opts ...pulumi.Re
 	}`
 
 	role, err := iam.NewRole(ctx, "task-role", &iam.RoleArgs{
-		Name:               pulumi.String(fmt.Sprintf("%s-%s-task", cfg.ProjectName, cfg.StackName)),
-		AssumeRolePolicy:   pulumi.String(assumeRolePolicy),
-		Description:        pulumi.String(fmt.Sprintf("Task role for %s %s", cfg.ProjectName, cfg.StackName)),
-		Tags:               tags.Base(cfg.ProjectName, cfg.StackName, map[string]string{"Role": "task"}),
+		Name:             pulumi.String(fmt.Sprintf("%s-%s-task", cfg.ProjectName, cfg.StackName)),
+		AssumeRolePolicy: pulumi.String(assumeRolePolicy),
+		Description:      pulumi.String(fmt.Sprintf("Task role for %s %s", cfg.ProjectName, cfg.StackName)),
+		Tags:             tags.Base(cfg.ProjectName, cfg.StackName, map[string]string{"Role": "task"}),
 	}, opts...)
 	if err != nil {
 		return nil, err
@@ -87,10 +87,10 @@ func newExecutionRole(ctx *pulumi.Context, cfg *config.StackConfig, opts ...pulu
 	}`
 
 	role, err := iam.NewRole(ctx, "execution-role", &iam.RoleArgs{
-		Name:               pulumi.String(fmt.Sprintf("%s-%s-execution", cfg.ProjectName, cfg.StackName)),
-		AssumeRolePolicy:   pulumi.String(assumeRolePolicy),
-		Description:        pulumi.String(fmt.Sprintf("Execution role for %s %s", cfg.ProjectName, cfg.StackName)),
-		Tags:               tags.Base(cfg.ProjectName, cfg.StackName, map[string]string{"Role": "execution"}),
+		Name:             pulumi.String(fmt.Sprintf("%s-%s-execution", cfg.ProjectName, cfg.StackName)),
+		AssumeRolePolicy: pulumi.String(assumeRolePolicy),
+		Description:      pulumi.String(fmt.Sprintf("Execution role for %s %s", cfg.ProjectName, cfg.StackName)),
+		Tags:             tags.Base(cfg.ProjectName, cfg.StackName, map[string]string{"Role": "execution"}),
 	}, opts...)
 	if err != nil {
 		return nil, err

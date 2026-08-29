@@ -104,12 +104,12 @@ func newScheduledActions(
 
 	for _, sa := range cfg.Scaling.ScheduledActions {
 		args := &appautoscaling.ScheduledActionArgs{
-			Name:               pulumi.String(fmt.Sprintf("%s-%s-%s", cfg.ProjectName, cfg.StackName, sa.Name)),
-			ResourceId:         resourceID,
-			ServiceNamespace:   pulumi.String("ecs"),
-			ScalableDimension:  pulumi.String("ecs:service:DesiredCount"),
-			Schedule:           pulumi.String(sa.Schedule),
-			Timezone:           pulumi.String(sa.Timezone),
+			Name:              pulumi.String(fmt.Sprintf("%s-%s-%s", cfg.ProjectName, cfg.StackName, sa.Name)),
+			ResourceId:        resourceID,
+			ServiceNamespace:  pulumi.String("ecs"),
+			ScalableDimension: pulumi.String("ecs:service:DesiredCount"),
+			Schedule:          pulumi.String(sa.Schedule),
+			Timezone:          pulumi.String(sa.Timezone),
 			ScalableTargetAction: &appautoscaling.ScheduledActionScalableTargetActionArgs{
 				MinCapacity: pulumi.Int(sa.MinCapacity),
 				MaxCapacity: pulumi.Int(sa.MaxCapacity),

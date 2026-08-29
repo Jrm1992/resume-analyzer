@@ -54,6 +54,7 @@ func Load(ctx context.Context, secretName string) (map[string]string, error) {
 	slog.Info("secrets: loaded from Secrets Manager", "name", secretName, "keys", len(m))
 	return m, nil
 }
+
 // ParseEnvMap unmarshals a secrets JSON document into env-style string values.
 // Scalars (numbers, booleans) are coerced to their string form; null values
 // are skipped; nested objects and arrays are rejected since they are not

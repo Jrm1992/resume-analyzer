@@ -8,9 +8,9 @@ import (
 )
 
 type ServiceConfig struct {
-	ServiceName string `json:"serviceName"`
-	ClusterName string `json:"clusterName"`
-	DesiredCount int   `json:"desiredCount"`
+	ServiceName  string `json:"serviceName"`
+	ClusterName  string `json:"clusterName"`
+	DesiredCount int    `json:"desiredCount"`
 }
 
 type ContainerConfig struct {
@@ -54,21 +54,21 @@ type ScalingMetricConfig struct {
 }
 
 type ScalingConfig struct {
-	Enabled           bool                   `json:"enabled"`
-	MinCapacity       int                    `json:"minCapacity"`
-	MaxCapacity       int                    `json:"maxCapacity"`
-	CPU               ScalingMetricConfig    `json:"cpu"`
-	Memory            ScalingMetricConfig    `json:"memory"`
-	ScheduledActions  []ScheduledActionConfig `json:"scheduledActions"`
+	Enabled          bool                    `json:"enabled"`
+	MinCapacity      int                     `json:"minCapacity"`
+	MaxCapacity      int                     `json:"maxCapacity"`
+	CPU              ScalingMetricConfig     `json:"cpu"`
+	Memory           ScalingMetricConfig     `json:"memory"`
+	ScheduledActions []ScheduledActionConfig `json:"scheduledActions"`
 }
 
 type ScheduledActionConfig struct {
-	Name            string  `json:"name"`
-	Schedule        string  `json:"schedule"`
-	MinCapacity     int     `json:"minCapacity"`
-	MaxCapacity     int     `json:"maxCapacity"`
-	DesiredCapacity *int    `json:"desiredCapacity,omitempty"`
-	Timezone        string  `json:"timezone"`
+	Name            string `json:"name"`
+	Schedule        string `json:"schedule"`
+	MinCapacity     int    `json:"minCapacity"`
+	MaxCapacity     int    `json:"maxCapacity"`
+	DesiredCapacity *int   `json:"desiredCapacity,omitempty"`
+	Timezone        string `json:"timezone"`
 }
 
 type DNSConfig struct {
@@ -82,30 +82,30 @@ type IAMConfig struct {
 }
 
 type StackConfig struct {
-	ProjectName  string            `json:"projectName"`
-	StackName    string            `json:"stackName"`
-	IsLocalstack bool              `json:"isLocalstack"`
-	Service      ServiceConfig     `json:"service"`
-	Container    ContainerConfig   `json:"container"`
-	Network      NetworkConfig     `json:"network"`
-	HealthCheck  HealthCheckConfig `json:"healthCheck"`
+	ProjectName  string             `json:"projectName"`
+	StackName    string             `json:"stackName"`
+	IsLocalstack bool               `json:"isLocalstack"`
+	Service      ServiceConfig      `json:"service"`
+	Container    ContainerConfig    `json:"container"`
+	Network      NetworkConfig      `json:"network"`
+	HealthCheck  HealthCheckConfig  `json:"healthCheck"`
 	LoadBalancer LoadBalancerConfig `json:"loadBalancer"`
-	EnvVars      []EnvVar          `json:"envVars"`
-	Scaling      ScalingConfig     `json:"scaling"`
-	DNS          DNSConfig         `json:"dns"`
-	IAM          IAMConfig         `json:"iam"`
+	EnvVars      []EnvVar           `json:"envVars"`
+	Scaling      ScalingConfig      `json:"scaling"`
+	DNS          DNSConfig          `json:"dns"`
+	IAM          IAMConfig          `json:"iam"`
 }
 
 func loadCoreObjects(cfg *config.Config, sc *StackConfig) error {
 	objs := map[string]interface{}{
-		"service":       &sc.Service,
-		"container":     &sc.Container,
-		"network":       &sc.Network,
-		"healthCheck":   &sc.HealthCheck,
-		"loadBalancer":  &sc.LoadBalancer,
-		"scaling":       &sc.Scaling,
-		"dns":           &sc.DNS,
-		"iam":           &sc.IAM,
+		"service":      &sc.Service,
+		"container":    &sc.Container,
+		"network":      &sc.Network,
+		"healthCheck":  &sc.HealthCheck,
+		"loadBalancer": &sc.LoadBalancer,
+		"scaling":      &sc.Scaling,
+		"dns":          &sc.DNS,
+		"iam":          &sc.IAM,
 	}
 
 	for key, target := range objs {

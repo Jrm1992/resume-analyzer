@@ -57,11 +57,11 @@ func New(ctx *pulumi.Context, in *Input) (*Result, error) {
 	}
 
 	def := map[string]any{
-		"name":           "app",
-		"image":          pulumi.Sprintf("ghcr.io/%s:%s", cfg.ProjectName, cfg.StackName),
-		"essential":      true,
-		"portMappings":   json.RawMessage(portMappingsJSON),
-		"environment":    json.RawMessage(envJSON),
+		"name":         "app",
+		"image":        pulumi.Sprintf("ghcr.io/%s:%s", cfg.ProjectName, cfg.StackName),
+		"essential":    true,
+		"portMappings": json.RawMessage(portMappingsJSON),
+		"environment":  json.RawMessage(envJSON),
 		"logConfiguration": map[string]any{
 			"logDriver": "awslogs",
 			"options": map[string]string{
@@ -71,10 +71,10 @@ func New(ctx *pulumi.Context, in *Input) (*Result, error) {
 			},
 		},
 		"healthCheck": map[string]any{
-			"command":  []string{"CMD-SHELL", fmt.Sprintf("curl -f http://localhost:%d%s || exit 1", cfg.Container.Port, cfg.HealthCheck.Path)},
-			"interval": cfg.HealthCheck.Interval,
-			"timeout":  cfg.HealthCheck.Timeout,
-			"retries":  cfg.HealthCheck.Retries,
+			"command":     []string{"CMD-SHELL", fmt.Sprintf("curl -f http://localhost:%d%s || exit 1", cfg.Container.Port, cfg.HealthCheck.Path)},
+			"interval":    cfg.HealthCheck.Interval,
+			"timeout":     cfg.HealthCheck.Timeout,
+			"retries":     cfg.HealthCheck.Retries,
 			"startPeriod": 10,
 		},
 	}
@@ -85,15 +85,15 @@ func New(ctx *pulumi.Context, in *Input) (*Result, error) {
 	}
 
 	taskDef, err := ecs.NewTaskDefinition(ctx, "task-definition", &ecs.TaskDefinitionArgs{
-		Family:                   pulumi.String(fmt.Sprintf("%s-%s", cfg.ProjectName, cfg.StackName)),
-		ContainerDefinitions:     pulumi.String(containerDefJSON),
-		NetworkMode:              pulumi.String("awsvpc"),
-		RequiresCompatibilities:  pulumi.StringArray{pulumi.String("FARGATE")},
-		Cpu:                      pulumi.String(cfg.Container.CPU),
-		Memory:                   pulumi.String(cfg.Container.Memory),
-		ExecutionRoleArn:         in.ExecutionRole.Arn,
-		TaskRoleArn:              in.TaskRole.Arn,
-		Tags:                     tags.Base(cfg.ProjectName, cfg.StackName),
+		Family:                  pulumi.String(fmt.Sprintf("%s-%s", cfg.ProjectName, cfg.StackName)),
+		ContainerDefinitions:    pulumi.String(containerDefJSON),
+		NetworkMode:             pulumi.String("awsvpc"),
+		RequiresCompatibilities: pulumi.StringArray{pulumi.String("FARGATE")},
+		Cpu:                     pulumi.String(cfg.Container.CPU),
+		Memory:                  pulumi.String(cfg.Container.Memory),
+		ExecutionRoleArn:        in.ExecutionRole.Arn,
+		TaskRoleArn:             in.TaskRole.Arn,
+		Tags:                    tags.Base(cfg.ProjectName, cfg.StackName),
 	}, append(opts, pulumi.DependsOn([]pulumi.Resource{logGroup}))...)
 	if err != nil {
 		return nil, err
