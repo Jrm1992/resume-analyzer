@@ -29,6 +29,7 @@ func clearEnv(t *testing.T) {
 func TestLoad_Defaults(t *testing.T) {
 	clearEnv(t)
 	t.Setenv("LLM_API_KEY", "test-key")
+	t.Setenv("LLM_BASE_URL", "https://api.openai.com/v1")
 
 	c, err := Load()
 	if err != nil {
@@ -159,21 +160,30 @@ func TestLoad_RejectsNonPositiveInts(t *testing.T) {
 	}
 }
 
-func TestLoad_WhitespaceBaseURL_FallsBackToDefault(t *testing.T) {
+func TestLoad_WhitespaceBaseURL_FailsFast(t *testing.T) {
 	clearEnv(t)
 	t.Setenv("LLM_API_KEY", "k")
 	t.Setenv("LLM_BASE_URL", "   ")
-	c, err := Load()
-	if err != nil {
-		t.Fatalf("Load: %v", err)
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error for whitespace-only LLM_BASE_URL")
 	}
-	if c.LLMBaseURL != "https://api.openai.com/v1" {
-		t.Errorf("LLMBaseURL = %q, want default", c.LLMBaseURL)
+}
+
+func TestLoad_MissingBaseURL(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("LLM_API_KEY", "k")
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error for missing LLM_BASE_URL")
+	}
+	if !strings.Contains(err.Error(), "LLM_BASE_URL") {
+		t.Errorf("err = %v", err)
 	}
 }
 func TestLoad_ConfigSecretFillsAPIKey(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("CONFIG_SECRET", `{"LLM_API_KEY":"from-secret","LLM_MODEL":"gpt-5-mini"}`)
+	t.Setenv("CONFIG_SECRET", `{"LLM_API_KEY":"from-secret","LLM_MODEL":"gpt-5-mini","LLM_BASE_URL":"https://api.openai.com/v1"}`)
 
 	c, err := Load()
 	if err != nil {
@@ -189,7 +199,7 @@ func TestLoad_ConfigSecretFillsAPIKey(t *testing.T) {
 
 func TestLoad_ExplicitEnvWinsOverConfigSecret(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("CONFIG_SECRET", `{"LLM_API_KEY":"from-secret","LLM_MODEL":"from-secret-model"}`)
+	t.Setenv("CONFIG_SECRET", `{"LLM_API_KEY":"from-secret","LLM_MODEL":"from-secret-model","LLM_BASE_URL":"https://api.openai.com/v1"}`)
 	t.Setenv("LLM_API_KEY", "explicit-key")
 
 	c, err := Load()
@@ -217,6 +227,7 @@ func TestLoad_EmptyConfigSecretIgnored(t *testing.T) {
 	clearEnv(t)
 	t.Setenv("CONFIG_SECRET", "")
 	t.Setenv("LLM_API_KEY", "k")
+	t.Setenv("LLM_BASE_URL", "https://api.openai.com/v1")
 
 	c, err := Load()
 	if err != nil {
@@ -229,7 +240,7 @@ func TestLoad_EmptyConfigSecretIgnored(t *testing.T) {
 
 func TestLoad_ConfigSecretNumericValues(t *testing.T) {
 	clearEnv(t)
-	t.Setenv("CONFIG_SECRET", `{"LLM_API_KEY":"k","LLM_MAX_TOKENS":4000,"LLM_TIMEOUT_SEC":120}`)
+	t.Setenv("CONFIG_SECRET", `{"LLM_API_KEY":"k","LLM_MAX_TOKENS":4000,"LLM_TIMEOUT_SEC":120,"LLM_BASE_URL":"https://api.openai.com/v1"}`)
 
 	c, err := Load()
 	if err != nil {

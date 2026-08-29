@@ -82,7 +82,11 @@ func Load() (*Config, error) {
 		return nil, errors.New("env LLM_API_KEY: required (set to your provider API key)")
 	}
 
-	baseURL := strings.TrimRight(getStr("LLM_BASE_URL", "https://api.openai.com/v1"), "/")
+	rawBaseURL := getStr("LLM_BASE_URL", "")
+	if rawBaseURL == "" {
+		return nil, errors.New("env LLM_BASE_URL: required (set to your provider base URL)")
+	}
+	baseURL := strings.TrimRight(rawBaseURL, "/")
 
 	respFmt := strings.ToLower(getStr("LLM_RESPONSE_FORMAT", "json_object"))
 	switch respFmt {
