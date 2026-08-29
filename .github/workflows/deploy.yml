@@ -79,6 +79,13 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+      - name: Restore Terraform State
+        run: |
+          mkdir -p ../../tfstate
+          if [ -f ../../tfstate/terraform.tfstate ]; then
+            cp ../../tfstate/terraform.tfstate .
+            echo "Restored terraform state from ../../tfstate"
+          fi
 
       - name: Terraform Init
         run: terraform init
@@ -106,6 +113,22 @@ jobs:
             -var-file="environments/prod.tfvars" \
             -var="image_tag=${IMAGE_TAG}" \
             module.taskdef.aws_cloudwatch_log_group.main /ecs/resume-analyzer-prod || true
+          terraform import \
+            -var-file="environments/prod.tfvars" \
+            -var="image_tag=${IMAGE_TAG}" \
+            module.alb.aws_lb.main "arn:aws:elasticloadbalancing:us-east-1:000000000000:loadbalancer/app/resume-analyzer-prod/930b5dd2f8144d9b" || true
+          terraform import \
+            -var-file="environments/prod.tfvars" \
+            -var="image_tag=${IMAGE_TAG}" \
+            module.loadbalancer.aws_lb_target_group.main "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/resume-analyzer-prod/2c2d9de344c748fa" || true
+          terraform import \
+            -var-file="environments/prod.tfvars" \
+            -var="image_tag=${IMAGE_TAG}" \
+            module.alb.aws_lb_listener.main "arn:aws:elasticloadbalancing:us-east-1:000000000000:listener/app/resume-analyzer-prod/930b5dd2f8144d9b/a11051623bf044a2" || true
+          terraform import \
+            -var-file="environments/prod.tfvars" \
+            -var="image_tag=${IMAGE_TAG}" \
+            module.loadbalancer.aws_lb_listener_rule.main "arn:aws:elasticloadbalancing:us-east-1:000000000000:listener-rule/app/resume-analyzer-prod/930b5dd2f8144d9b/a11051623bf044a2/fdf91eca37774537" || true
           set -e
 
       - name: Terraform Plan
@@ -120,3 +143,9 @@ jobs:
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve tfplan
+
+      - name: Save Terraform State
+        if: always()
+        run: |
+          mkdir -p ../../tfstate
+          cp terraform.tfstate ../../tfstate/terraform.tfstate
