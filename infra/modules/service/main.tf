@@ -33,24 +33,8 @@ resource "aws_ecs_service" "main" {
 
   tags = var.tags
 
-  depends_on = [aws_lb_listener_rule.main]
 }
 
-resource "aws_lb_listener_rule" "main" {
-  listener_arn = var.listener_arn
-  priority     = var.rule_priority
-
-  action {
-    type             = "forward"
-    target_group_arn = var.target_group_arn
-  }
-
-  condition {
-    host_header {
-      values = [var.host_header]
-    }
-  }
-}
 
 output "service_name" {
   description = "ECS service name"

@@ -10,6 +10,7 @@ provider "aws" {
     ec2                    = var.is_localstack ? "http://${var.localstack_host}:4566" : null
     ecs                    = var.is_localstack ? "http://${var.localstack_host}:4566" : null
     elasticloadbalancing   = var.is_localstack ? "http://${var.localstack_host}:4566" : null
+    elasticloadbalancingv2 = var.is_localstack ? "http://${var.localstack_host}:4566" : null
     iam                    = var.is_localstack ? "http://${var.localstack_host}:4566" : null
     logs                   = var.is_localstack ? "http://${var.localstack_host}:4566" : null
     secretsmanager         = var.is_localstack ? "http://${var.localstack_host}:4566" : null
@@ -149,9 +150,6 @@ module "service" {
   security_group_ids  = var.network.security_group_ids
   container_port      = var.container.port
   target_group_arn    = module.loadbalancer.target_group_arn
-  listener_arn        = module.alb.listener_arn
-  rule_priority       = var.load_balancer.internal.rule_priority
-  host_header         = var.load_balancer.internal.host_header
   tags                = local.tags
 }
 

@@ -50,20 +50,6 @@ variable "target_group_arn" {
   description = "Target group ARN"
 }
 
-variable "listener_arn" {
-  type        = string
-  description = "ALB listener ARN"
-}
-
-variable "rule_priority" {
-  type        = number
-  description = "Listener rule priority"
-}
-
-variable "host_header" {
-  type        = string
-  description = "Host header for routing"
-}
 
 variable "tags" {
   type        = map(string)
