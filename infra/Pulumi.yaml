@@ -1,3 +1,0 @@
-name: resume-analyzer
-runtime: go
-description: Infrastructure for resume-analyzer ECS Fargate service on Floci localstack
