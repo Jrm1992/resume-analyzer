@@ -226,3 +226,22 @@ func TestLoad_EmptyConfigSecretIgnored(t *testing.T) {
 		t.Errorf("LLMAPIKey = %q, want k", c.LLMAPIKey)
 	}
 }
+
+func TestLoad_ConfigSecretNumericValues(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("CONFIG_SECRET", `{"LLM_API_KEY":"k","LLM_MAX_TOKENS":4000,"LLM_TIMEOUT_SEC":120}`)
+
+	c, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if c.LLMAPIKey != "k" {
+		t.Errorf("LLMAPIKey = %q, want k", c.LLMAPIKey)
+	}
+	if c.LLMMaxTokens != 4000 {
+		t.Errorf("LLMMaxTokens = %d, want 4000", c.LLMMaxTokens)
+	}
+	if c.LLMTimeout != 120*time.Second {
+		t.Errorf("LLMTimeout = %v, want 120s", c.LLMTimeout)
+	}
+}

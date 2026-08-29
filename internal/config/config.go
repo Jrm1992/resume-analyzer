@@ -1,13 +1,14 @@
 package config
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jose/resume-analyzer/internal/secrets"
 )
 
 type Config struct {
@@ -29,8 +30,8 @@ var applySecretEnv = func() error {
 	if !ok || strings.TrimSpace(raw) == "" {
 		return nil
 	}
-	var m map[string]string
-	if err := json.Unmarshal([]byte(raw), &m); err != nil {
+	m, err := secrets.ParseEnvMap(raw)
+	if err != nil {
 		return fmt.Errorf("env CONFIG_SECRET: %w", err)
 	}
 	for k, v := range m {

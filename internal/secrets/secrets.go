@@ -46,13 +46,41 @@ func Load(ctx context.Context, secretName string) (map[string]string, error) {
 		return nil, fmt.Errorf("secrets: get %q: %w", secretName, err)
 	}
 
-	var secrets map[string]string
-	if err := json.Unmarshal([]byte(*out.SecretString), &secrets); err != nil {
+	m, err := ParseEnvMap(*out.SecretString)
+	if err != nil {
 		return nil, fmt.Errorf("secrets: parse %q: %w", secretName, err)
 	}
 
-	slog.Info("secrets: loaded from Secrets Manager", "name", secretName, "keys", len(secrets))
-	return secrets, nil
+	slog.Info("secrets: loaded from Secrets Manager", "name", secretName, "keys", len(m))
+	return m, nil
+}
+// ParseEnvMap unmarshals a secrets JSON document into env-style string values.
+// Scalars (numbers, booleans) are coerced to their string form; null values
+// are skipped; nested objects and arrays are rejected since they are not
+// representable as env vars.
+func ParseEnvMap(raw string) (map[string]string, error) {
+	var m map[string]any
+	if err := json.Unmarshal([]byte(raw), &m); err != nil {
+		return nil, err
+	}
+	out := make(map[string]string, len(m))
+	for k, v := range m {
+		switch val := v.(type) {
+		case string:
+			out[k] = val
+		case float64, bool:
+			b, err := json.Marshal(val)
+			if err != nil {
+				return nil, fmt.Errorf("key %q: %w", k, err)
+			}
+			out[k] = string(b)
+		case nil:
+			continue
+		default:
+			return nil, fmt.Errorf("key %q: value must be a string, number, or boolean", k)
+		}
+	}
+	return out, nil
 }
 
 func SetIfAbsent(m map[string]string) {
