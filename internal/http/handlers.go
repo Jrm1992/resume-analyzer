@@ -58,7 +58,7 @@ func (s *Server) JobHandler(ctx context.Context, j *jobs.Job) {
 		slog.Error("job failed", "job_id", j.ID, "req_id", j.RequestID, "dur_ms", dur.Milliseconds(), "model", s.Config.LLMModel, "err", err)
 		s.Store.Update(j.ID, func(j *jobs.Job) {
 			j.Status = jobs.StatusFailed
-			j.Err = err.Error()
+			j.Err = userFacingAnalyzeError(err)
 		})
 		return
 	}
@@ -67,6 +67,13 @@ func (s *Server) JobHandler(ctx context.Context, j *jobs.Job) {
 		j.Status = jobs.StatusDone
 		j.Result = res
 	})
+}
+
+func userFacingAnalyzeError(err error) string {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "Analysis timed out. Try again in a moment."
+	}
+	return "We couldn't complete the analysis right now. Please try again shortly."
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {

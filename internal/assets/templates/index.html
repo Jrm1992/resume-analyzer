@@ -1,9 +1,10 @@
 {{define "content"}}
 <div class="work-grid">
-  <section class="card form-card">
+  <section id="top" class="card form-card">
     <p class="section-title">Start here</p>
     <h2 class="card-title">Upload &amp; analyze</h2>
-    <form hx-post="/analyze" hx-target="#result" hx-swap="innerHTML" hx-encoding="multipart/form-data">
+    <form hx-post="/analyze" hx-target="#result" hx-swap="innerHTML" hx-encoding="multipart/form-data"
+          hx-disabled-elt="#analyze-btn">
       <div class="field">
         <label for="resume">Resume (PDF)</label>
         <input type="file" id="resume" name="resume" accept="application/pdf" required>
@@ -26,7 +27,10 @@
       </div>
 
       <div class="actions">
-        <button type="submit">Analyze résumé →</button>
+        <button type="submit" id="analyze-btn">
+          <span class="btn-label">Analyze résumé →</span>
+          <span class="btn-spinner htmx-indicator"></span>
+        </button>
         <span class="field-hint">Typically 20–60 seconds.</span>
       </div>
     </form>
