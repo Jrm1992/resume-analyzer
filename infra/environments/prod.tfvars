@@ -46,18 +46,6 @@ load_balancer = {
   }
 }
 
-env_vars = [
-  { name = "LLM_MODEL", value = "gpt-4o-mini" },
-  { name = "LLM_MAX_TOKENS", value = "4000" },
-  { name = "LLM_TIMEOUT_SEC", value = "120" },
-  { name = "LLM_RESPONSE_FORMAT", value = "json_object" },
-  { name = "MAX_PDF_MB", value = "10" },
-  { name = "PORT", value = "8080" },
-  { name = "WORKERS", value = "4" },
-  { name = "QUEUE_CAPACITY", value = "200" },
-  { name = "JOB_TTL_MIN", value = "60" }
-]
-
 config_secret_arn = "arn:aws:secretsmanager:us-east-1:000000000000:secret:resume-analyzer/config-2G7SXF"
 
 secrets = {}

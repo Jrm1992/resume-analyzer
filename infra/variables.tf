@@ -141,23 +141,6 @@ variable "load_balancer" {
   }
 }
 
-# Environment variables (non-secret)
-variable "env_vars" {
-  description = "Environment variables for the container (non-secret values)"
-  type        = list(object({ name = string, value = string }))
-  default = [
-    { name = "LLM_MODEL", value = "gpt-4o-mini" },
-    { name = "LLM_MAX_TOKENS", value = "4000" },
-    { name = "LLM_TIMEOUT_SEC", value = "120" },
-    { name = "LLM_RESPONSE_FORMAT", value = "json_object" },
-    { name = "MAX_PDF_MB", value = "10" },
-    { name = "PORT", value = "8080" },
-    { name = "WORKERS", value = "2" },
-    { name = "QUEUE_CAPACITY", value = "100" },
-    { name = "JOB_TTL_MIN", value = "60" }
-  ]
-}
-
 # Secrets configuration (references to Secrets Manager ARNs)
 variable "secrets" {
   description = "Secrets to inject as environment variables (name -> secret ARN)"

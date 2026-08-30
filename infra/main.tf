@@ -207,13 +207,8 @@ locals {
           protocol      = "tcp"
         }
       ]
-      environment = [
-        for env in var.env_vars : {
-          name  = env.name
-          value = env.value
-        }
-      ]
-      secrets = local.secrets_list
+      environment = []
+      secrets     = local.secrets_list
       logConfiguration = {
         logDriver = "awslogs"
         options = {
