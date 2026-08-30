@@ -1,6 +1,6 @@
-output "grafana_url" {
-  description = "Grafana URL (via the internal ALB host-header rule)"
-  value       = "http://${var.grafana.host_header}:${var.listener_port}"
+output "grafana_port" {
+  description = "Dedicated ALB listener port for Grafana — reachable at http://<any host resolving to the ALB>:<this port>, no Host header needed"
+  value       = var.grafana.listener_port
 }
 
 output "loki_push_url" {

@@ -34,14 +34,19 @@ variable "security_group_ids" {
   description = "Security group IDs (shared with the app service and ALB)"
 }
 
+variable "alb_arn" {
+  type        = string
+  description = "ALB ARN — used to create Grafana's own dedicated listener"
+}
+
 variable "alb_listener_arn" {
   type        = string
-  description = "ALB listener ARN to attach host-header routing rules to"
+  description = "Existing ALB listener ARN to attach Loki's host-header routing rule to"
 }
 
 variable "listener_port" {
   type        = number
-  description = "ALB listener port (used to build the Grafana/Loki URLs)"
+  description = "ALB listener port the app/Loki share (used to build the Loki push/query URL)"
 }
 
 variable "aws_region" {
@@ -76,8 +81,7 @@ variable "grafana" {
     image            = string
     cpu              = string
     memory           = string
-    rule_priority    = number
-    host_header      = string
+    listener_port    = number
     admin_secret_arn = string
   })
 

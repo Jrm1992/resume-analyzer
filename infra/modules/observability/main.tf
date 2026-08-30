@@ -205,22 +205,38 @@ module "grafana_taskdef" {
   tags                   = var.tags
 }
 
-module "grafana_lb" {
-  source = "../loadbalancer"
+resource "aws_lb_target_group" "grafana" {
+  name        = "${local.full_name}-grafana"
+  port        = 3000
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
 
-  project_name          = var.project_name
-  stack_name            = var.stack_name
-  target_group_name     = "${local.full_name}-grafana"
-  container_port        = 3000
-  vpc_id                = var.vpc_id
-  listener_arn          = var.alb_listener_arn
-  rule_priority         = var.grafana.rule_priority
-  host_header           = var.grafana.host_header
-  health_check_path     = "/api/health"
-  health_check_interval = 30
-  health_check_timeout  = 10
-  health_check_retries  = 3
-  tags                  = var.tags
+  health_check {
+    path                = "/api/health"
+    interval            = 30
+    timeout             = 10
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    matcher             = "200"
+    protocol            = "HTTP"
+    port                = "traffic-port"
+  }
+
+  tags = var.tags
+}
+
+resource "aws_lb_listener" "grafana" {
+  load_balancer_arn = var.alb_arn
+  port              = var.grafana.listener_port
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.grafana.arn
+  }
+
+  tags = var.tags
 }
 
 module "grafana_service" {
@@ -235,6 +251,6 @@ module "grafana_service" {
   subnet_ids          = var.subnet_ids
   security_group_ids  = var.security_group_ids
   container_port      = 3000
-  target_group_arn    = module.grafana_lb.target_group_arn
+  target_group_arn    = aws_lb_target_group.grafana.arn
   tags                = var.tags
 }
