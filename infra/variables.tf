@@ -150,9 +150,9 @@ variable "load_balancer" {
 }
 
 variable "grafana_listener_port" {
-  description = "Dedicated ALB listener port for Grafana (own listener, forwards directly to Grafana — no host-header rule, so it works regardless of how DNS/tunnels resolve hostnames to the ALB)"
+  description = "Dedicated ALB listener port for Grafana (own listener, forwards directly to Grafana — no host-header rule, so it works regardless of how DNS/tunnels resolve hostnames to the ALB). Not 3000 — that collides with the Floci UI."
   type        = number
-  default     = 3000
+  default     = 3001
 }
 
 variable "observability_enabled" {

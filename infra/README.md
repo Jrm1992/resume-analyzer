@@ -64,7 +64,7 @@ All inputs are in `variables.tf`; per-environment values in `environments/prod.t
 | `grafana_admin_secret_arn` | Secrets Manager ARN holding the Grafana admin password (required when `observability_enabled = true`) |
 | `loki_container` / `grafana_container` | Image + CPU/memory sizing for each |
 | `load_balancer.loki` | ALB rule priority + host header for Loki (internal consumers only) |
-| `grafana_listener_port` | Dedicated ALB listener port for Grafana (default `3000`), no host header needed |
+| `grafana_listener_port` | Dedicated ALB listener port for Grafana (default `3001` — 3000 collides with the Floci UI), no host header needed |
 
 ## Adding a new environment
 
@@ -77,7 +77,7 @@ terraform plan -var-file=environments/staging.tfvars -var image_tag=<tag>
 
 Set `observability_enabled = true` to deploy Loki (S3-backed storage) and Grafana as their own ECS services behind the same internal ALB, and switch the app's task from the `awslogs` driver to a FireLens (Fluent Bit) sidecar that pushes straight to Loki. Fargate tasks have no access to a host Docker socket, so this replaces a literal Promtail container — `grafana/fluent-bit-plugin-loki` is Grafana's own FireLens-compatible image for exactly this setup.
 
-Grafana gets its own dedicated ALB listener (`grafana_listener_port`, default `3000`) that forwards directly to it — no host header involved, so it works over a plain port-forward (e.g. a Tailscale tunnel bound to a fixed port) even when hostname-based routing doesn't reach you. Loki stays on the existing host-header scheme on the shared listener, since it's only ever called internally (Grafana's datasource, the app's FireLens sidecar), never by a human browser.
+Grafana gets its own dedicated ALB listener (`grafana_listener_port`, default `3001` — 3000 collides with the Floci UI) that forwards directly to it — no host header involved, so it works over a plain port-forward (e.g. a Tailscale tunnel bound to a fixed port) even when hostname-based routing doesn't reach you. Loki stays on the existing host-header scheme on the shared listener, since it's only ever called internally (Grafana's datasource, the app's FireLens sidecar), never by a human browser.
 
 Before enabling it:
 
