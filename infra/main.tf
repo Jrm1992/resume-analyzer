@@ -186,6 +186,48 @@ module "autoscaling" {
   scheduled_actions  = var.scaling.scheduled_actions
 }
 
+module "observability" {
+  source = "./modules/observability"
+  count  = var.observability_enabled ? 1 : 0
+
+  project_name       = var.project_name
+  stack_name         = var.stack_name
+  tags               = local.tags
+  cluster_name       = var.service.cluster_name
+  vpc_id             = var.network.vpc_id
+  subnet_ids         = var.network.subnet_ids
+  security_group_ids = var.network.security_group_ids
+  alb_listener_arn   = module.alb.listener_arn
+  listener_port      = var.container.port
+  aws_region         = var.aws_region
+  is_localstack      = var.is_localstack
+  localstack_host    = var.localstack_host
+
+  loki = {
+    image         = var.loki_container.image
+    cpu           = var.loki_container.cpu
+    memory        = var.loki_container.memory
+    rule_priority = var.load_balancer.loki.rule_priority
+    host_header   = var.load_balancer.loki.host_header
+  }
+
+  grafana = {
+    image            = var.grafana_container.image
+    cpu              = var.grafana_container.cpu
+    memory           = var.grafana_container.memory
+    rule_priority    = var.load_balancer.grafana.rule_priority
+    host_header      = var.load_balancer.grafana.host_header
+    admin_secret_arn = var.grafana_admin_secret_arn
+  }
+}
+
+resource "aws_cloudwatch_log_group" "firelens" {
+  count             = var.observability_enabled ? 1 : 0
+  name              = "/ecs/${local.full_name}-firelens"
+  retention_in_days = 30
+  tags              = local.tags
+}
+
 # ============================================================
 # Locals for container definitions
 # ============================================================
@@ -196,7 +238,46 @@ locals {
     var.config_secret_arn != "" ? [{ name = "CONFIG_SECRET", valueFrom = var.config_secret_arn }] : []
   )
 
-  container_definitions = jsonencode([
+  app_log_configuration = var.observability_enabled ? {
+    logDriver = "awsfirelens"
+    options = {
+      Name       = "grafana-loki"
+      Url        = "http://${var.load_balancer.loki.host_header}:${var.container.port}/loki/api/v1/push"
+      Labels     = "{job=\"${local.full_name}\", container=\"app\"}"
+      LineFormat = "key_value"
+      RemoveKeys = "container_id,ecs_task_arn,source"
+    }
+    } : {
+    logDriver = "awslogs"
+    options = {
+      "awslogs-group"         = "/ecs/${local.full_name}"
+      "awslogs-region"        = var.aws_region
+      "awslogs-stream-prefix" = "ecs"
+    }
+  }
+
+  firelens_sidecar = var.observability_enabled ? [
+    {
+      name      = "log_router"
+      image     = "grafana/fluent-bit-plugin-loki:latest-amd64"
+      essential = true
+      firelensConfiguration = {
+        type = "fluentbit"
+      }
+      environment = []
+      secrets     = []
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/${local.full_name}-firelens"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "firelens"
+        }
+      }
+    }
+  ] : []
+
+  app_container = merge(
     {
       name  = "app"
       image = "${local.image_repo}:${var.image_tag}"
@@ -207,17 +288,15 @@ locals {
           protocol      = "tcp"
         }
       ]
-      environment = []
-      secrets     = local.secrets_list
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = "/ecs/${local.full_name}"
-          "awslogs-region"        = var.aws_region
-          "awslogs-stream-prefix" = "ecs"
-        }
-      }
-      essential = true
-    }
-  ])
+      environment      = []
+      secrets          = local.secrets_list
+      logConfiguration = local.app_log_configuration
+      essential        = true
+    },
+    var.observability_enabled ? {
+      dependsOn = [{ containerName = "log_router", condition = "START" }]
+    } : {}
+  )
+
+  container_definitions = jsonencode(concat([local.app_container], local.firelens_sidecar))
 }
