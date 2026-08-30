@@ -56,8 +56,7 @@ All inputs are in `variables.tf`; per-environment values in `environments/prod.t
 | `network` | VPC, subnets, security groups (LocalStack defaults in prod.tfvars) |
 | `health_check` | ALB target group health check |
 | `load_balancer` | Listener rule priority + host header |
-| `env_vars` | Container environment variables |
-| `config_secret_arn` | Secrets Manager ARN for the JSON config secret (LLM_API_KEY) |
+| `config_secret_arn` | Secrets Manager ARN for the JSON config secret (all app config, incl. LLM_API_KEY) |
 | `scaling` | Auto-scaling (min/max, CPU/memory targets) |
 | `dns` | Optional Route53 record |
 | `iam` | Optional pre-existing role ARNs |
