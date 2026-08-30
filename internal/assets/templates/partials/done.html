@@ -3,9 +3,11 @@
   <section class="card">
     <p class="section-title">Match score</p>
     <div class="score">
-      <span class="score-value">{{.Result.Score}}%</span>
+      <span class="score-value {{scoreClass .Result.Score}}">{{.Result.Score}}%</span>
     </div>
-    <div class="score-bar"><div class="score-bar-fill" style="width:{{.Result.Score}}%"></div></div>
+    <div class="score-bar" role="progressbar" aria-valuenow="{{.Result.Score}}" aria-valuemin="0" aria-valuemax="100" aria-label="Match score">
+      <div class="score-bar-fill {{scoreClass .Result.Score}}" style="width:{{.Result.Score}}%"></div>
+    </div>
   </section>
 
   <section class="card">
@@ -64,6 +66,7 @@
 
     <div class="actions">
       <a href="/jobs/{{.ID}}/pdf"><button type="button" class="btn-secondary">Download rewritten PDF</button></a>
+      <a href="/#top"><button type="button" class="btn-secondary">Analyze another</button></a>
     </div>
   </section>
 </div>

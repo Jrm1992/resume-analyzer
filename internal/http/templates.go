@@ -13,15 +13,28 @@ type Templates struct {
 	partials *template.Template
 }
 
+var funcMap = template.FuncMap{
+	"scoreClass": func(score int) string {
+		switch {
+		case score >= 75:
+			return "score-good"
+		case score >= 50:
+			return "score-mid"
+		default:
+			return "score-low"
+		}
+	},
+}
+
 func LoadTemplates() (*Templates, error) {
-	pages, err := template.ParseFS(assets.Templates,
+	pages, err := template.New("layout.html").Funcs(funcMap).ParseFS(assets.Templates,
 		"templates/layout.html",
 		"templates/index.html",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("templates: pages: %w", err)
 	}
-	partials, err := template.ParseFS(assets.Templates,
+	partials, err := template.New("queued.html").Funcs(funcMap).ParseFS(assets.Templates,
 		"templates/partials/queued.html",
 		"templates/partials/done.html",
 		"templates/partials/failed.html",

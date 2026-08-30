@@ -20,6 +20,10 @@
   --border-gold: #b17816;
   --focus-blue: #3b82f6;
 
+  --score-good: #2f7d3f;
+  --score-mid: #b17816;
+  --score-low: #c23b22;
+
   --border-sage: #bfc1b7;
   --border-light: #b6b7af;
 
@@ -668,6 +672,23 @@ button:active,
   color: var(--accent-orange);
 }
 
+button[disabled] {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-left: 0.5em;
+  vertical-align: -0.15em;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
 /* Score bar */
 .score {
   display: flex;
@@ -683,6 +704,13 @@ button:active,
   color: var(--text-deep-olive);
   line-height: 1;
 }
+
+.score-good { color: var(--score-good); }
+.score-mid { color: var(--score-mid); }
+.score-low { color: var(--score-low); }
+.score-bar-fill.score-good { background: var(--score-good); }
+.score-bar-fill.score-mid { background: var(--score-mid); }
+.score-bar-fill.score-low { background: var(--score-low); }
 
 .score-label {
   font-size: 14px;
