@@ -44,9 +44,16 @@ load_balancer = {
     rule_priority = 10
     host_header   = "resume-analyzer.floci"
   }
+  loki = {
+    rule_priority = 21
+    host_header   = "loki.floci"
+  }
 }
 
 config_secret_arn = "arn:aws:secretsmanager:us-east-1:000000000000:secret:resume-analyzer/config-2G7SXF"
+
+observability_enabled    = true
+grafana_admin_secret_arn = "arn:aws:secretsmanager:us-east-1:000000000000:secret:resume-analyzer/grafana-admin-JTSCQN"
 
 secrets = {}
 
