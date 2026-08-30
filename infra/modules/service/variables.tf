@@ -50,6 +50,12 @@ variable "target_group_arn" {
   description = "Target group ARN"
 }
 
+variable "container_name" {
+  type        = string
+  description = "Name of the container (in the task definition) to attach to the load balancer"
+  default     = "app"
+}
+
 
 variable "tags" {
   type        = map(string)

@@ -131,6 +131,14 @@ variable "load_balancer" {
       rule_priority = number
       host_header   = string
     })
+    grafana = optional(object({
+      rule_priority = number
+      host_header   = string
+    }), { rule_priority = 20, host_header = "grafana.localhost" })
+    loki = optional(object({
+      rule_priority = number
+      host_header   = string
+    }), { rule_priority = 21, host_header = "loki.localhost" })
   })
   default = {
     internal = {
@@ -138,6 +146,54 @@ variable "load_balancer" {
       rule_priority = 10
       host_header   = "resume-analyzer.localhost"
     }
+    grafana = {
+      rule_priority = 20
+      host_header   = "grafana.localhost"
+    }
+    loki = {
+      rule_priority = 21
+      host_header   = "loki.localhost"
+    }
+  }
+}
+
+variable "observability_enabled" {
+  description = "Whether to deploy the Loki + Grafana observability stack and switch the app to ship logs to Loki via FireLens"
+  type        = bool
+  default     = false
+}
+
+variable "grafana_admin_secret_arn" {
+  description = "Secrets Manager ARN holding the Grafana admin password (plain string secret, not JSON). Required when observability_enabled = true."
+  type        = string
+  default     = ""
+}
+
+variable "loki_container" {
+  description = "Loki container image/sizing"
+  type = object({
+    image  = string
+    cpu    = string
+    memory = string
+  })
+  default = {
+    image  = "grafana/loki:3.0.0"
+    cpu    = "256"
+    memory = "512"
+  }
+}
+
+variable "grafana_container" {
+  description = "Grafana container image/sizing"
+  type = object({
+    image  = string
+    cpu    = string
+    memory = string
+  })
+  default = {
+    image  = "grafana/grafana:11.0.0"
+    cpu    = "256"
+    memory = "512"
   }
 }
 
