@@ -63,7 +63,8 @@ All inputs are in `variables.tf`; per-environment values in `environments/prod.t
 | `observability_enabled` | Deploy Loki + Grafana and switch the app to ship logs there instead of CloudWatch |
 | `grafana_admin_secret_arn` | Secrets Manager ARN holding the Grafana admin password (required when `observability_enabled = true`) |
 | `loki_container` / `grafana_container` | Image + CPU/memory sizing for each |
-| `load_balancer.loki` / `load_balancer.grafana` | ALB rule priority + host header for each |
+| `load_balancer.loki` | ALB rule priority + host header for Loki (internal consumers only) |
+| `grafana_listener_port` | Dedicated ALB listener port for Grafana (default `3000`), no host header needed |
 
 ## Adding a new environment
 
@@ -76,12 +77,15 @@ terraform plan -var-file=environments/staging.tfvars -var image_tag=<tag>
 
 Set `observability_enabled = true` to deploy Loki (S3-backed storage) and Grafana as their own ECS services behind the same internal ALB, and switch the app's task from the `awslogs` driver to a FireLens (Fluent Bit) sidecar that pushes straight to Loki. Fargate tasks have no access to a host Docker socket, so this replaces a literal Promtail container — `grafana/fluent-bit-plugin-loki` is Grafana's own FireLens-compatible image for exactly this setup.
 
+Grafana gets its own dedicated ALB listener (`grafana_listener_port`, default `3000`) that forwards directly to it — no host header involved, so it works over a plain port-forward (e.g. a Tailscale tunnel bound to a fixed port) even when hostname-based routing doesn't reach you. Loki stays on the existing host-header scheme on the shared listener, since it's only ever called internally (Grafana's datasource, the app's FireLens sidecar), never by a human browser.
+
 Before enabling it:
 
 1. Create the Grafana admin password secret and point `grafana_admin_secret_arn` at it — it's a plain string secret, not JSON.
-2. Point DNS (or `/etc/hosts` on the Floci VM) for `load_balancer.grafana.host_header` and `load_balancer.loki.host_header` at the ALB, the same way `load_balancer.internal.host_header` is already resolved for the app today.
-3. `terraform apply` — this creates a new S3 bucket (`<project>-<stack>-loki-logs`) for Loki's chunk/index storage.
+2. Point DNS (or `/etc/hosts` on the Floci VM) for `load_balancer.loki.host_header` at the ALB, the same way `load_balancer.internal.host_header` is already resolved for the app today.
+3. Make sure `grafana_listener_port` is reachable through however you access the Floci VM (e.g. forward that port over your Tailscale tunnel).
+4. `terraform apply` — this creates a new S3 bucket (`<project>-<stack>-loki-logs`) for Loki's chunk/index storage.
 
-Grafana comes up at `http://<grafana host_header>:<container.port>` with a Loki datasource pre-provisioned. Both Loki and the app's own CloudWatch log group (`/ecs/<project>-<stack>`) stop receiving app logs once this is on — app logs live in Loki instead.
+Grafana comes up at `http://<any host that reaches the ALB>:<grafana_listener_port>` with a Loki datasource pre-provisioned. Both Loki and the app's own CloudWatch log group (`/ecs/<project>-<stack>`) stop receiving app logs once this is on — app logs live in Loki instead.
 
 Backend is `local` (state file on the VM). Moving to real AWS: uncomment the `s3` backend in `versions.tf`.

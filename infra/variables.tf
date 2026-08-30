@@ -131,10 +131,6 @@ variable "load_balancer" {
       rule_priority = number
       host_header   = string
     })
-    grafana = optional(object({
-      rule_priority = number
-      host_header   = string
-    }), { rule_priority = 20, host_header = "grafana.localhost" })
     loki = optional(object({
       rule_priority = number
       host_header   = string
@@ -146,15 +142,17 @@ variable "load_balancer" {
       rule_priority = 10
       host_header   = "resume-analyzer.localhost"
     }
-    grafana = {
-      rule_priority = 20
-      host_header   = "grafana.localhost"
-    }
     loki = {
       rule_priority = 21
       host_header   = "loki.localhost"
     }
   }
+}
+
+variable "grafana_listener_port" {
+  description = "Dedicated ALB listener port for Grafana (own listener, forwards directly to Grafana — no host-header rule, so it works regardless of how DNS/tunnels resolve hostnames to the ALB)"
+  type        = number
+  default     = 3000
 }
 
 variable "observability_enabled" {

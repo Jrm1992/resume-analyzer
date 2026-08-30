@@ -197,6 +197,7 @@ module "observability" {
   vpc_id             = var.network.vpc_id
   subnet_ids         = var.network.subnet_ids
   security_group_ids = var.network.security_group_ids
+  alb_arn            = module.alb.alb_arn
   alb_listener_arn   = module.alb.listener_arn
   listener_port      = var.container.port
   aws_region         = var.aws_region
@@ -215,8 +216,7 @@ module "observability" {
     image            = var.grafana_container.image
     cpu              = var.grafana_container.cpu
     memory           = var.grafana_container.memory
-    rule_priority    = var.load_balancer.grafana.rule_priority
-    host_header      = var.load_balancer.grafana.host_header
+    listener_port    = var.grafana_listener_port
     admin_secret_arn = var.grafana_admin_secret_arn
   }
 }
