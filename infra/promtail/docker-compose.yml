@@ -1,0 +1,17 @@
+services:
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: resume-analyzer-promtail
+    volumes:
+      - ./promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - floci
+    restart: unless-stopped
+
+networks:
+  floci:
+    external: true
+    name: floci-localstack_default

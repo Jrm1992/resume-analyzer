@@ -75,9 +75,7 @@ terraform plan -var-file=environments/staging.tfvars -var image_tag=<tag>
 
 ## Observability (Loki + Grafana)
 
-Set `observability_enabled = true` to deploy Loki (S3-backed storage) and Grafana as their own ECS services behind the same internal ALB, and switch the app's task from the `awslogs` driver to a FireLens (Fluent Bit) sidecar that pushes straight to Loki. Fargate tasks have no access to a host Docker socket, so this replaces a literal Promtail container — `grafana/fluent-bit-plugin-loki` is Grafana's own FireLens-compatible image for exactly this setup.
-
-Grafana gets its own dedicated ALB listener (`grafana_listener_port`, default `3001` — 3000 collides with the Floci UI) that forwards directly to it — no host header involved, so it works over a plain port-forward (e.g. a Tailscale tunnel bound to a fixed port) even when hostname-based routing doesn't reach you. Loki stays on the existing host-header scheme on the shared listener, since it's only ever called internally (Grafana's datasource, the app's FireLens sidecar), never by a human browser.
+Set `observability_enabled = true` to deploy Loki (S3-backed storage) and Grafana as their own ECS services behind the same internal ALB. Grafana gets its own dedicated ALB listener (`grafana_listener_port`, default `3001` — 3000 collides with the Floci UI) that forwards directly to it — no host header involved, so it works over a plain port-forward (e.g. a Tailscale tunnel bound to a fixed port). Loki stays on the existing host-header scheme on the shared listener, since it's only ever called internally (Grafana's datasource, Promtail), never by a human browser.
 
 Before enabling it:
 
@@ -86,6 +84,19 @@ Before enabling it:
 3. Make sure `grafana_listener_port` is reachable through however you access the Floci VM (e.g. forward that port over your Tailscale tunnel).
 4. `terraform apply` — this creates a new S3 bucket (`<project>-<stack>-loki-logs`) for Loki's chunk/index storage.
 
-Grafana comes up at `http://<any host that reaches the ALB>:<grafana_listener_port>` with a Loki datasource pre-provisioned. Both Loki and the app's own CloudWatch log group (`/ecs/<project>-<stack>`) stop receiving app logs once this is on — app logs live in Loki instead.
+Grafana comes up at `http://<any host that reaches the ALB>:<grafana_listener_port>` with a Loki datasource pre-provisioned.
+
+### Shipping app logs to Loki
+
+The app's task keeps the plain `awslogs` driver (→ CloudWatch, unchanged) — Floci ([floci-io/floci](https://github.com/floci-io/floci)) doesn't implement ECS FireLens (it never wires a container's `awsfirelens` log driver to a sidecar; every container always runs on Docker's stock `json-file` driver underneath, regardless of what the task definition says), so a FireLens/Fluent Bit sidecar is a dead end here.
+
+Instead, a real Promtail reads the app container's logs straight off the Docker daemon on the Floci host, via `docker_sd_configs` against `/var/run/docker.sock` — this works because Floci runs ECS tasks as literal Docker containers on a host you control, unlike real Fargate. Run it as a plain Compose stack on the Floci VM (outside Terraform — it needs the host's Docker socket, which no ECS task definition can get):
+
+```bash
+cd infra/promtail
+docker compose up -d
+```
+
+It discovers containers by the `org.opencontainers.image.title=resume-analyzer` image label (set by `docker/metadata-action` in the build workflow) so it only ships the app's own logs, not Loki/Grafana/Floci's internal containers, and joins Floci's `floci-localstack_default` Docker network to resolve `loki.floci` — adjust that network name in `docker-compose.yml` if your Floci setup names it differently (`docker inspect <any floci-ecs container> --format '{{json .NetworkSettings.Networks}}'` shows it).
 
 Backend is `local` (state file on the VM). Moving to real AWS: uncomment the `s3` backend in `versions.tf`.
