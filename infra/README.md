@@ -90,12 +90,7 @@ Grafana comes up at `http://<any host that reaches the ALB>:<grafana_listener_po
 
 The app's task keeps the plain `awslogs` driver (→ CloudWatch, unchanged) — Floci ([floci-io/floci](https://github.com/floci-io/floci)) doesn't implement ECS FireLens (it never wires a container's `awsfirelens` log driver to a sidecar; every container always runs on Docker's stock `json-file` driver underneath, regardless of what the task definition says), so a FireLens/Fluent Bit sidecar is a dead end here.
 
-Instead, a real Promtail reads the app container's logs straight off the Docker daemon on the Floci host, via `docker_sd_configs` against `/var/run/docker.sock` — this works because Floci runs ECS tasks as literal Docker containers on a host you control, unlike real Fargate. Run it as a plain Compose stack on the Floci VM (outside Terraform — it needs the host's Docker socket, which no ECS task definition can get):
-
-```bash
-cd infra/promtail
-docker compose up -d
-```
+Instead, a real Promtail reads the app container's logs straight off the Docker daemon on the Floci host, via `docker_sd_configs` against `/var/run/docker.sock` — this works because Floci runs ECS tasks as literal Docker containers on a host you control, unlike real Fargate. No ECS task definition (Fargate or Floci) can get that socket, so it isn't an ECS service — it's a plain Compose stack under `infra/promtail/`, but still entirely Terraform-provisioned: `terraform apply` runs `docker compose up -d` for it via a `local-exec` provisioner (`null_resource.promtail`), the same way the deploy pipeline's runner already executes directly on the Floci host. Nothing to run by hand.
 
 It discovers containers by the `org.opencontainers.image.title=resume-analyzer` image label (set by `docker/metadata-action` in the build workflow) so it only ships the app's own logs, not Loki/Grafana/Floci's internal containers, and joins Floci's `floci-localstack_default` Docker network to resolve `loki.floci` — adjust that network name in `docker-compose.yml` if your Floci setup names it differently (`docker inspect <any floci-ecs container> --format '{{json .NetworkSettings.Networks}}'` shows it).
 

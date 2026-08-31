@@ -256,3 +256,25 @@ locals {
     }
   ])
 }
+
+resource "null_resource" "promtail" {
+  count = var.observability_enabled ? 1 : 0
+
+  triggers = {
+    compose_hash = filesha256("${path.module}/promtail/docker-compose.yml")
+    config_hash  = filesha256("${path.module}/promtail/promtail-config.yaml")
+  }
+
+  provisioner "local-exec" {
+    working_dir = "${path.module}/promtail"
+    command     = "docker compose up -d --remove-orphans"
+  }
+
+  provisioner "local-exec" {
+    when        = destroy
+    working_dir = "${path.module}/promtail"
+    command     = "docker compose down"
+  }
+
+  depends_on = [module.observability]
+}
