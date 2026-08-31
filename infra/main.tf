@@ -241,11 +241,12 @@ locals {
   app_log_configuration = var.observability_enabled ? {
     logDriver = "awsfirelens"
     options = {
-      Name       = "grafana-loki"
-      Url        = "http://${var.load_balancer.loki.host_header}:${var.container.port}/loki/api/v1/push"
-      Labels     = "{job=\"${local.full_name}\", container=\"app\"}"
-      LineFormat = "key_value"
-      RemoveKeys = "container_id,ecs_task_arn,source"
+      Name        = "loki"
+      host        = var.load_balancer.loki.host_header
+      port        = tostring(var.container.port)
+      labels      = "job=${local.full_name}, container=app"
+      line_format = "key_value"
+      remove_keys = "container_id,ecs_task_arn,source"
     }
     } : {
     logDriver = "awslogs"
@@ -259,7 +260,7 @@ locals {
   firelens_sidecar = var.observability_enabled ? [
     {
       name      = "log_router"
-      image     = "grafana/fluent-bit-plugin-loki:latest-amd64"
+      image     = "amazon/aws-for-fluent-bit:stable"
       essential = true
       firelensConfiguration = {
         type = "fluentbit"
