@@ -221,6 +221,13 @@ module "observability" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "firelens" {
+  count             = var.observability_enabled ? 1 : 0
+  name              = "/ecs/${local.full_name}-firelens"
+  retention_in_days = 30
+  tags              = local.tags
+}
+
 # ============================================================
 # Locals for container definitions
 # ============================================================
@@ -231,7 +238,47 @@ locals {
     var.config_secret_arn != "" ? [{ name = "CONFIG_SECRET", valueFrom = var.config_secret_arn }] : []
   )
 
-  container_definitions = jsonencode([
+  app_log_configuration = var.observability_enabled ? {
+    logDriver = "awsfirelens"
+    options = {
+      Name        = "loki"
+      host        = var.load_balancer.loki.host_header
+      port        = tostring(var.container.port)
+      labels      = "job=${local.full_name}, container=app"
+      line_format = "key_value"
+      remove_keys = "container_id,ecs_task_arn,source"
+    }
+    } : {
+    logDriver = "awslogs"
+    options = {
+      "awslogs-group"         = "/ecs/${local.full_name}"
+      "awslogs-region"        = var.aws_region
+      "awslogs-stream-prefix" = "ecs"
+    }
+  }
+
+  firelens_sidecar = var.observability_enabled ? [
+    {
+      name      = "log_router"
+      image     = "amazon/aws-for-fluent-bit:stable"
+      essential = true
+      firelensConfiguration = {
+        type = "fluentbit"
+      }
+      environment = []
+      secrets     = []
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/${local.full_name}-firelens"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "firelens"
+        }
+      }
+    }
+  ] : []
+
+  app_container = merge(
     {
       name  = "app"
       image = "${local.image_repo}:${var.image_tag}"
@@ -242,17 +289,15 @@ locals {
           protocol      = "tcp"
         }
       ]
-      environment = []
-      secrets     = local.secrets_list
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = "/ecs/${local.full_name}"
-          "awslogs-region"        = var.aws_region
-          "awslogs-stream-prefix" = "ecs"
-        }
-      }
-      essential = true
-    }
-  ])
+      environment      = []
+      secrets          = local.secrets_list
+      logConfiguration = local.app_log_configuration
+      essential        = true
+    },
+    var.observability_enabled ? {
+      dependsOn = [{ containerName = "log_router", condition = "START" }]
+    } : {}
+  )
+
+  container_definitions = jsonencode(concat([local.app_container], local.firelens_sidecar))
 }

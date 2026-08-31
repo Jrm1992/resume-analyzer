@@ -88,15 +88,8 @@ Grafana comes up at `http://<any host that reaches the ALB>:<grafana_listener_po
 
 ### Shipping app logs to Loki
 
-The app's task keeps the plain `awslogs` driver (→ CloudWatch, unchanged) — Floci ([floci-io/floci](https://github.com/floci-io/floci)) doesn't implement ECS FireLens (it never wires a container's `awsfirelens` log driver to a sidecar; every container always runs on Docker's stock `json-file` driver underneath, regardless of what the task definition says), so a FireLens/Fluent Bit sidecar is a dead end here.
+When `observability_enabled = true`, the app's task switches its `logConfiguration` from `awslogs` to `awsfirelens`, with a `log_router` (`amazon/aws-for-fluent-bit:stable`) sidecar. ECS translates the app container's `logConfiguration.options` (`Name = "loki"`, `host`, `port`, `labels`, `line_format`, `remove_keys`) into a generated Fluent Bit `[OUTPUT]` block pointed at `loki.floci` — this is the standard, AWS-documented mechanism for routing ECS/Fargate logs to a custom destination, and it's genuinely portable: no host access, no Docker socket, works the same way on real AWS Fargate as it's meant to here.
 
-Instead, a real Promtail reads the app container's logs straight off the Docker daemon on the Floci host, via `docker_sd_configs` against `/var/run/docker.sock` — this works because Floci runs ECS tasks as literal Docker containers on a host you control, unlike real Fargate. Run it as a plain Compose stack on the Floci VM (outside Terraform — it needs the host's Docker socket, which no ECS task definition can get):
-
-```bash
-cd infra/promtail
-docker compose up -d
-```
-
-It discovers containers by the `org.opencontainers.image.title=resume-analyzer` image label (set by `docker/metadata-action` in the build workflow) so it only ships the app's own logs, not Loki/Grafana/Floci's internal containers, and joins Floci's `floci-localstack_default` Docker network to resolve `loki.floci` — adjust that network name in `docker-compose.yml` if your Floci setup names it differently (`docker inspect <any floci-ecs container> --format '{{json .NetworkSettings.Networks}}'` shows it).
+**Known limitation on Floci:** [floci-io/floci](https://github.com/floci-io/floci) does not implement this — it never wires a container's `awsfirelens` driver to the FireLens sidecar (confirmed with `docker inspect <app-container> --format '{{json .HostConfig.LogConfig}}'`: the driver is always `json-file`, regardless of what the task definition says). `log_router` starts and runs fine, it just never receives anything, so no app logs reach Loki when tested on Floci. This is a Floci gap, not a bug in this config — verify it end-to-end on real ECS Fargate instead.
 
 Backend is `local` (state file on the VM). Moving to real AWS: uncomment the `s3` backend in `versions.tf`.
