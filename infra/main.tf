@@ -241,12 +241,7 @@ locals {
   app_log_configuration = var.observability_enabled ? {
     logDriver = "awsfirelens"
     options = {
-      Name        = "loki"
-      host        = var.load_balancer.loki.host_header
-      port        = tostring(var.container.port)
-      labels      = "job=${local.full_name}, container=app"
-      line_format = "key_value"
-      remove_keys = "container_id,ecs_task_arn,source"
+      Name = "forward"
     }
     } : {
     logDriver = "awslogs"
@@ -257,11 +252,36 @@ locals {
     }
   }
 
+  firelens_config = <<-CONF
+    [SERVICE]
+        Flush        1
+        Daemon       off
+        Log_Level    info
+
+    [INPUT]
+        Name         forward
+        Listen       0.0.0.0
+        Port         24224
+
+    [OUTPUT]
+        Name         loki
+        Match        *
+        Host         ${var.load_balancer.loki.host_header}
+        Port         ${var.container.port}
+        Labels       job=${local.full_name}, container=app
+        Line_Format  key_value
+        Remove_Keys  container_id,ecs_task_arn,source
+  CONF
+
+  firelens_command = "mkdir -p /fluent-bit/etc && cat > /fluent-bit/etc/custom.conf <<'CFG'\n${local.firelens_config}\nCFG\nexec /fluent-bit/bin/fluent-bit -c /fluent-bit/etc/custom.conf"
+
   firelens_sidecar = var.observability_enabled ? [
     {
-      name      = "log_router"
-      image     = "amazon/aws-for-fluent-bit:stable"
-      essential = true
+      name       = "log_router"
+      image      = "amazon/aws-for-fluent-bit:stable"
+      essential  = true
+      entryPoint = ["/bin/sh", "-c"]
+      command    = [local.firelens_command]
       firelensConfiguration = {
         type = "fluentbit"
       }
